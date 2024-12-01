@@ -1,0 +1,13 @@
+{
+  "CompileFlags": {
+    "Add": [
+      "-std=c++17",
+      "-Iinclude",
+      "-D_UNICODE",
+      "-DUNICODE"
+    ]
+  },
+  "Diagnostics": {
+    "Suppress":[]
+  }
+}
