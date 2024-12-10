@@ -5,10 +5,9 @@
             "type": "shell",
             "label": "Debug Compile",
             "detail": "调试前编译",
-            "command": "./compile.ps1",
+            "command": "./compile.bash",
             "args": [
-                "-Debug",
-                "$True",
+                "-g"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
