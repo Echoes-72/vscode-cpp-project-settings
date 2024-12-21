@@ -1,0 +1,104 @@
+#include"../Include/resouse.hpp"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "main.exe.xml"
+ID_MENU MENU
+BEGIN
+    POPUP TEXT("文件")
+    BEGIN
+        MENUITEM TEXT("新建(&O)\tCtrl+O"),        ID_FILE_NEW
+        MENUITEM TEXT("保存(&C)\tCtrl+C"),        ID_FILE_SAVE
+        MENUITEM TEXT("导入(&G)\tCtrl+G"),        ID_FILE_READ   
+    END
+    POPUP TEXT("帮助")
+    BEGIN
+        MENUITEM TEXT("属性(&A)\tCtrl+A"),        ID_HELP_ATTRIBUTE
+        MENUITEM TEXT("关于(&R)\tCtrl+R"),        ID_HELP_ABOUT
+        MENUITEM TEXT("快捷键(&S)\tCtrl+S"),      ID_HELP_ACCELERATORS  
+    END                    
+    POPUP TEXT("程序")
+    BEGIN
+        MENUITEM TEXT("实现思路(&I)\tCtrl+I"),    ID_CODE_IDEA   
+        MENUITEM TEXT("实现工具(&T)\tCtrl+T"),    ID_CODE_TOOL
+    END    
+END
+
+IDR_ACC  ACCELERATORS
+{
+    "^O",            ID_FILE_NEW            
+    "^C",            ID_FILE_SAVE           
+    "^G",            ID_FILE_READ       
+    "^A",            ID_HELP_ATTRIBUTE      
+    "^R",            ID_HELP_ABOUT    
+    "^S",            ID_HELP_ACCELERATORS
+    "^I",            ID_CODE_IDEA           
+    "^T",            ID_CODE_TOOL
+    VK_LEFT,         ID_LEFT,                          VIRTKEY,NOINVERT
+    VK_RIGHT,        ID_RIGHT,                         VIRTKEY,NOINVERT
+    VK_UP,           ID_UP,                            VIRTKEY,NOINVERT
+    VK_DOWN,         ID_DOWN,                          VIRTKEY,NOINVERT
+    VK_SPACE,        ID_SPACE,                         VIRTKEY,NOINVERT
+    VK_RETURN,       ID_RETURN,                        VIRTKEY,NOINVERT
+    VK_HOME,         ID_H_HOME,                        VIRTKEY,NOINVERT
+    VK_HOME,         ID_V_HOME,                        VIRTKEY,SHIFT,NOINVERT
+    VK_END,          ID_H_END,                         VIRTKEY,NOINVERT  
+    VK_END,          ID_V_END,                         VIRTKEY,SHIFT,NOINVERT                                 
+}
+
+ID_CODE_TOOL DIALOGEX 120, 60, 140, 70
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_WINDOWEDGE
+CAPTION "实现工具"
+FONT 10, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL TOOL, 18181, TEXT("Static"), SS_LEFT, 5, 5, 250, 125
+    PUSHBUTTON TEXT("确认"), IDOK, 45 , 50 , 50 , 15   
+END
+
+ID_CODE_IDEA DIALOGEX 25, 25, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_WINDOWEDGE
+CAPTION "实现思路"
+FONT 10, "MS Shell Dlg", 400, 0, 0x1  
+BEGIN
+    CONTROL IDEA, 18181, TEXT("Static"), SS_LEFT, 5, 5, 394, 250
+    PUSHBUTTON TEXT("确认"), IDOK, 180 , 280 , 50 , 15      
+END
+
+ID_DIALOG_ACCELERATORS DIALOGEX 150, 80, 150, 150
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_WINDOWEDGE
+CAPTION "快捷键设置"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL ACCELERATOR, 18181, TEXT("Static"), SS_LEFT, 16, 5, 250, 125
+    PUSHBUTTON TEXT("确认"), IDOK, 50 , 125 , 50 , 15      
+END
+
+ID_DIALOG_ABOUT DIALOGEX 150, 80, 200, 90
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_WINDOWEDGE
+CAPTION "关于"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL ABOUT, 18181, TEXT("Static"), SS_LEFT, 5, 5, 190, 50
+    PUSHBUTTON TEXT("确认"), IDOK, 75 , 70 , 50 , 14  
+END
+
+ID_DIALOG_ATTRIBUTE DIALOGEX 150, 80, 150, 70
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_WINDOWEDGE
+CAPTION "细胞属性"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL ATTRIBUTE, 18181, TEXT("Static"), SS_LEFT, 5, 5, 140, 50
+    PUSHBUTTON TEXT("确认"), IDOK, 50 , 50 , 50 , 14      
+END
+
+ID_DIALOG_SAVEORNOT DIALOGEX 150, 80, 150, 70
+STYLE DS_MODALFRAME | DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION TEXT("提示")
+FONT 8, "MS Shell Dlg", 400, 0, 0x1 
+BEGIN
+    LTEXT   TEXT("是否要保存为文件"), 18181 ,43, 13, 100, 20
+    CONTROL TEXT("是"), IDOK, TEXT("Button"), BS_PUSHBUTTON | BS_CENTER, 22,50,50,14
+    CONTROL TEXT("否"), IDCANCEL, TEXT("Button"), BS_PUSHBUTTON | BS_CENTER, 82,50,50,14
+END
