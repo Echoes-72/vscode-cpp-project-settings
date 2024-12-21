@@ -7,11 +7,11 @@ if ($Debug) {
 }
 
 $src = "./main.cpp ./src/*.cpp"
-$Iinclude = "-I ./include ./lib/include"
+$Iinclude = "./include"
 $exe = "main.exe"
 
 
-& clang++.exe $src $Iinclude $DebugFlag -D_UNICODE -DUNICODE -o ./bin/$exe -std=c++17
+& clang++.exe $src -I $Iinclude $DebugFlag -D_UNICODE -DUNICODE -o ./bin/$exe -std=c++17
 
 if ($? -and -not $Debug) {
    & .\bin\$exe
