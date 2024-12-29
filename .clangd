@@ -1,12 +1,6 @@
 {
     "CompileFlags": {
-        "Add": [
-            "-std=c++17",
-            "-Iinclude",
-            "-D_UNICODE",
-            "-DUNICODE",
-            "--target=x86_64-pc-windows-msvc"
-        ]
+        "CompilationDatabase": ".vscode"
     },
     "Diagnostics": {
         "Suppress": []

@@ -5,10 +5,19 @@
             "type": "shell",
             "label": "Debug Compile",
             "detail": "调试前编译",
-            "command": "./compile.ps1",
+            "command": "xmake",
             "args": [
-                "-Debug",
-                "$True",
+                "f",
+                "-m",
+                "debug",
+                "&&",
+                "xmake",
+                "-j15",
+                "&&",
+                "xmake",
+                "f",
+                "-m",
+                "release"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
