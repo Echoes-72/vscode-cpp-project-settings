@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <windows.h>
+#include <windowsx.h>
+#include <CommCtrl.h>
 
 #include "Include/Calculate.hpp"
 #include "Include/Evolution.hpp"

@@ -1,8 +1,6 @@
 #include <fstream>
 #include <tchar.h>
 #include <windows.h>
-#include <CommCtrl.h>
-#include <windowsx.h>
 
 using namespace std;
 #if !defined DEAD

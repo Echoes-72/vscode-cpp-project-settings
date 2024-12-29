@@ -1,5 +1,4 @@
 set_config("buildir", ".vscode/build")
-set_config("projectdir", ".vscode/")
 target("App")
     if is_mode("debug") then --!当代码里明确指定了debug模式时,默认的就不奏效了 
         -- 添加DEBUG编译宏
@@ -26,6 +25,7 @@ target("App")
     set_arch("x64")
     set_toolchains("llvm")
     set_languages("c++17")
+    set_encodings("utf-8")
     add_includedirs("include")
     add_defines("UNICODE", "_UNICODE")
     add_files("src/*.cpp","main.cpp","resource/res.rc")

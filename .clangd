@@ -3,6 +3,11 @@
         "CompilationDatabase": ".vscode"
     },
     "Diagnostics": {
-        "Suppress": []
+        "Suppress": [],
+        "ClangTidy": {
+            "Add": [],
+            "Remove": [],
+            "FastCheckFilter": "Strict"
+        }
     }
 }
