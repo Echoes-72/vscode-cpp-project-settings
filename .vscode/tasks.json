@@ -7,17 +7,22 @@
             "detail": "调试前编译",
             "command": "xmake",
             "args": [
+                "clean",
+                "-a",
+                "&&",
+                "xmake",
                 "f",
                 "-m",
                 "debug",
                 "&&",
                 "xmake",
                 "-j15",
-                "&&",
-                "xmake",
-                "f",
-                "-m",
-                "release"
+                "-v",
+                // "&&",
+                // "xmake",
+                // "f",
+                // "-m",
+                // "release"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
