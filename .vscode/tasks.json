@@ -4,26 +4,28 @@
         {
             "type": "shell",
             "label": "Debug Compile",
+            "group": "build",
             "detail": "调试前编译",
-            "command": "xmake",
-            "args": [
-                "clean",
-                "-a",
-                "&&",
-                "xmake",
-                "f",
-                "-m",
-                "debug",
-                "&&",
-                "xmake",
-                "-j15",
-                "-v",
-                // "&&",
-                // "xmake",
-                // "f",
-                // "-m",
-                // "release"
-            ],
+            "command": "xmake clean -a && xmake f -m debug && xmake -j15 -v",
+            "args": [],
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "VS Build",
+            "group": "build",
+            "detail": "生成Visual Studio工程",
+            "command": "xmake project -k vsxmake",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
             "options": {
                 "cwd": "${workspaceFolder}"
             }

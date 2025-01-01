@@ -13,6 +13,7 @@ target("App")
     add_files("src/*.cpp","main.cpp", {defines={"UNICODE","_UNICODE"}})
     add_files("resource/res.rc")
     add_mrcflags("-c65001",{force = true})
+
     if is_mode("debug") then --!当代码里明确指定了debug模式时,默认的就不奏效了 
         -- 添加DEBUG编译宏
         add_defines("DEBUG")
