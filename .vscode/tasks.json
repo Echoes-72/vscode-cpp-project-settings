@@ -4,11 +4,28 @@
         {
             "type": "shell",
             "label": "Debug Compile",
+            "group": "build",
             "detail": "调试前编译",
-            "command": "./compile.bash",
-            "args": [
-                "-g"
-            ],
+            "command": "xmake clean -a && xmake f -m debug && xmake -j15 -v",
+            "args": [],
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Compile_Commands",
+            "group": "build",
+            "detail": "生成compile_commands.json",
+            "command": "xmake project -k compile_commands -o .vscode",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
             "options": {
                 "cwd": "${workspaceFolder}"
             }

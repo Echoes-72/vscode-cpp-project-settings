@@ -1,14 +1,13 @@
 {
     "CompileFlags": {
-        "Add": [
-            "-std=c++17",
-            "-Iinclude",
-            "-D_UNICODE",
-            "-DUNICODE",
-            "--target=x86_64-pc-linux-gnu"
-        ]
+        "CompilationDatabase": ".vscode"
     },
     "Diagnostics": {
-        "Suppress": []
+        "Suppress": [],
+        "ClangTidy": {
+            "Add": [],
+            "Remove": [],
+            "FastCheckFilter": "Strict"
+        }
     }
 }
