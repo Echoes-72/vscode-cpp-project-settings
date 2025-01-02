@@ -29,6 +29,20 @@
             "options": {
                 "cwd": "${workspaceFolder}"
             }
+        },
+        {
+            "type": "shell",
+            "label": "Compile_Commands",
+            "group": "build",
+            "detail": "生成Compile_Commands.json",
+            "command": "xmake project -k compile_commands -o .vscode",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
         }
     ]
 }
