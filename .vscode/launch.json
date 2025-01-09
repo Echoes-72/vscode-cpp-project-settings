@@ -3,7 +3,7 @@
     "configurations": [
         { // C/C++:扩展提供
             "name": "GDB",
-            "type": "cppdbg",
+            "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/debug/App.exe",
             "args": [],
@@ -11,27 +11,18 @@
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
-            "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    }
-                ],
-               "preLaunchTask": "Debug Compile"
+            "console": "integratedTerminal" // 将控制台输出和输入设置在vscode集成终端里
         },
-        {   // CodeLLDB:扩展提供
+        { // CodeLLDB:扩展提供
             "name": "LLDB",
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/bin/debug/App.exe",
             "cwd": "${workspaceFolder}/bin/debug",
             "stopOnEntry": false,
-            "args": [
-                ""
-            ],
+            "args": [],
             "preLaunchTask": "Debug Compile",
+            "console": "integratedTerminal" // 将控制台输出和输入设置在vscode集成终端里
         },
     ]
 }
