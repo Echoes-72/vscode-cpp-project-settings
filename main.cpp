@@ -1,10 +1,9 @@
+#include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#include <vector>
 #include <windows.h>
-#include <windowsx.h>
-#include <CommCtrl.h>
+#include <wingdi.h>
 
 #include "Include/Calculate.hpp"
 #include "Include/Evolution.hpp"
@@ -14,54 +13,61 @@
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "User32.lib")
 #pragma comment(lib, "Shell32.lib")
+#pragma comment(linker, "\"/manifestdependency:type='win32' \
+                           name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+                           processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 using namespace std;
 
-// constexpr int CUBE = 25;
-HRGN InfoRgn;
-HDC AppDC;
+constexpr int CUBE = 25;
+HDC HDc;
 RECT WindowRect = { 30, 30, 730, 530 }, ClientRect, DataArea = { 0, 0, 150, 0 }, PaintArea;
-SIZE MapSize = { 1, 50 };
+HRGN CellRgn;
+SIZE MapSize = { 50, 50 };
 HWND Dialog;
-
 vector<POINT> AliveCell = vector<POINT>(0);
 vector<vector<vector<POINT>>> ChannelGraph;
-vector<vector<HttpRequest>> Map        = vector<vector<HttpRequest>>(MapSize.cy, vector<HttpRequest>(MapSize.cx));
+vector<vector<Cell>> Map              = vector<vector<Cell>>(MapSize.cy, vector<Cell>(MapSize.cx));
 vector<vector<float>> CommitmentGraph = vector<vector<float>>(MapSize.cy * MapSize.cx, vector<float>(MapSize.cy *MapSize.cx, 0));
 
 LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK ModelessProc(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK ModleProc(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lParam);
+INITCOMMONCONTROLSEX icc;
 
 INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    WNDCLASSEX WebServer;
+    WNDCLASSEX Cellular_Automata;
     TCHAR ClassName[] = TEXT("Cellular_Automata");
     TCHAR AppName[]   = TEXT("Cellular Automata");
     HWND Handle;
     MSG Message;
-
+    srand(time(NULL));
+    //*初始化公共控件库
+    icc.dwSize = sizeof(INITCOMMONCONTROLSEX);
+    icc.dwICC  = ICC_PROGRESS_CLASS;
+    InitCommonControlsEx(&icc);
     //*注册窗口类
-    WebServer.cbSize        = sizeof(WNDCLASSEX);
-    WebServer.style         = CS_OWNDC;
-    WebServer.lpfnWndProc   = WindowProcess;
-    WebServer.cbClsExtra    = 0;
-    WebServer.cbWndExtra    = sizeof(long);
-    WebServer.hInstance     = hInstance;
-    WebServer.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-    WebServer.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    WebServer.hbrBackground = CreateSolidBrush(DefaultColor);
-    WebServer.lpszMenuName  = MAKEINTRESOURCE(ID_MENU);
-    WebServer.lpszClassName = ClassName;
-    WebServer.hIconSm       = NULL;
-    RegisterClassEx(&WebServer);
+    Cellular_Automata.cbSize        = sizeof(WNDCLASSEX);
+    Cellular_Automata.style         = CS_OWNDC;
+    Cellular_Automata.lpfnWndProc   = WindowProcess;
+    Cellular_Automata.cbClsExtra    = 0;
+    Cellular_Automata.cbWndExtra    = sizeof(long);
+    Cellular_Automata.hInstance     = hInstance;
+    Cellular_Automata.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+    Cellular_Automata.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    Cellular_Automata.hbrBackground = CreateSolidBrush(DefaultColor);
+    Cellular_Automata.lpszMenuName  = MAKEINTRESOURCE(ID_MENU);
+    Cellular_Automata.lpszClassName = ClassName;
+    Cellular_Automata.hIconSm       = NULL;
+    RegisterClassEx(&Cellular_Automata);
 
     //*创建主窗口
     Handle = CreateWindowEx(
         WS_EX_TOPMOST,
         ClassName,
         AppName,
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VSCROLL,
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VSCROLL | WS_HSCROLL,
         WindowRect.left,
         WindowRect.top,
         WindowRect.right - WindowRect.left,
@@ -72,7 +78,7 @@ INT WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         NULL
     );
     HACCEL Acclerator = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ACC));
-    HttpRequest::Hdc = AppDC = GetDC(Handle);
+    Cell::Hdc = HDc = GetDC(Handle);
     ShowWindow(Handle, nCmdShow);
     UpdateWindow(Handle);
     //*消息循环分发
@@ -94,10 +100,10 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
 {
     PAINTSTRUCT Ps;
     TCHAR Time[] = TEXT("Time:"), SelectedCeil[] = TEXT("Ceil:"), Wealth[] = TEXT("Wealth:"), Limit[] = TEXT("Limit:");
-    static RECT TimeRect, TimeArea, CellRect, PosRect, WealthRect, ValueRect, InfoRect, BUTGORECT, BUTSTOPRECT, BUTENDRECT, LimitRect,
+    static RECT TimeRect, TimeArea, CellRect, PosRect, WealthRect, ValueRect, ShowRect, BUTGORECT, BUTSTOPRECT, BUTENDRECT, LimitRect,
         LimEdRect, ProRect, StaticRect;
     DRAWTEXTPARAMS DrawTextParams = { sizeof(DRAWTEXTPARAMS), 4, 1, 0, 0 };
-    SCROLLINFO /*HScrollInfo,*/ VScrollInfo;
+    SCROLLINFO HScrollInfo, VScrollInfo;
     static BOOL IsLTracking = false, IsRTracking = false, TimeSet = false, Enableing = TRUE, Changed = FALSE, Invalid = FALSE,
                 Running = FALSE, Stopped = FALSE;
     static INT count = 0, TimeLimit = 1000, HPos = 0, VPos = 0, ProPos = 0;
@@ -143,8 +149,11 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
     {
     case WM_CREATE:
     { //*初始化窗口
-        AppDC                 = GetDC(Handle);
+
+        HDc = GetDC(Handle);
+
         DrawTextParams.cbSize = sizeof(DRAWTEXTPARAMS);
+        WindowRect.bottom    += GetSystemMetrics(SM_CYHSCROLL);
         WindowRect.right     += GetSystemMetrics(SM_CXVSCROLL);
 
         AdjustWindowRectEx(
@@ -165,26 +174,27 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
                 Map[n][m].Position = { m, n };
             }
         }
+        HScrollInfo.cbSize = sizeof(SCROLLINFO);
         VScrollInfo.cbSize = sizeof(SCROLLINFO);
         SIZE TextSize;
-        SelectObject(AppDC, HFont);
-        GetTextExtentPoint32(AppDC, Time, _tcslen(Time), &TextSize);
+        SelectObject(HDc, HFont);
+        GetTextExtentPoint32(HDc, Time, _tcslen(Time), &TextSize);
         TimeRect = { 0, 0, TextSize.cx, TextSize.cy };
         TimeArea = { TimeRect.right, TimeRect.top, DataArea.right, TimeRect.bottom - TimeRect.top };
-        GetTextExtentPoint32(AppDC, SelectedCeil, _tcslen(SelectedCeil), &TextSize);
+        GetTextExtentPoint32(HDc, SelectedCeil, _tcslen(SelectedCeil), &TextSize);
         CellRect = { 0, TimeRect.bottom, TextSize.cx, TimeRect.bottom + TextSize.cy };
         SetRect(&PosRect, CellRect.right, CellRect.top, DataArea.right, CellRect.bottom);
-        GetTextExtentPoint32(AppDC, Wealth, _tcslen(Wealth), &TextSize);
+        GetTextExtentPoint32(HDc, Wealth, _tcslen(Wealth), &TextSize);
         WealthRect = { 0, CellRect.bottom, TextSize.cx, CellRect.bottom + TextSize.cy };
         SetRect(&ValueRect, WealthRect.right, WealthRect.top, DataArea.right, WealthRect.bottom);
-        InfoRect = { 10, WealthRect.bottom + 10, DataArea.right - 10, WealthRect.bottom + 240 };
-        InfoRgn  = CreateRectRgnIndirect(&InfoRect);
+        ShowRect = { 10, WealthRect.bottom + 10, DataArea.right - 10, WealthRect.bottom + 140 };
+        CellRgn  = CreateRectRgnIndirect(&ShowRect);
 
-        SetRect(&BUTGORECT, InfoRect.left, InfoRect.bottom + 10, InfoRect.left + 60, InfoRect.bottom + 40);
+        SetRect(&BUTGORECT, ShowRect.left, ShowRect.bottom + 10, ShowRect.left + 60, ShowRect.bottom + 40);
         SetRect(&BUTSTOPRECT, BUTGORECT.right + 10, BUTGORECT.top, BUTGORECT.right + 70, BUTGORECT.bottom);
         SetRect(&BUTENDRECT, BUTGORECT.left, BUTGORECT.bottom + 10, BUTSTOPRECT.right, BUTGORECT.bottom + 40);
 
-        GetTextExtentPoint32(AppDC, Limit, _tcslen(Limit), &TextSize);
+        GetTextExtentPoint32(HDc, Limit, _tcslen(Limit), &TextSize);
         LimitRect  = { TimeRect.left, BUTENDRECT.bottom + 10, TimeRect.left + TextSize.cx, BUTENDRECT.bottom + TextSize.cy + 10 };
         LimEdRect  = { LimitRect.right + 2, LimitRect.top - 1, DataArea.right - 5, LimitRect.bottom + 1 };
         ProRect    = { LimitRect.left + 5, LimEdRect.bottom + 10, LimEdRect.right, LimEdRect.bottom + 40 };
@@ -221,7 +231,7 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         ButErase = CreateWindowEx(
             0,
             TEXT("BUTTON"),
-            TEXT("SHUTDOWN"),
+            TEXT("Erase"),
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             BUTENDRECT.left,
             BUTENDRECT.top,
@@ -283,7 +293,7 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
 
         EvolutionData::FatherWindow = Handle;
         EvoluData.WM_SELF           = WM_DONE;
-        EvoluData.ZoomCellRegion    = InfoRgn;
+        EvoluData.ZoomCellRegion    = CellRgn;
         EvoluData.ValueRect         = ValueRect;
         EvoluData.ZoomCellPos       = &SelectedPoint;
         EvoluData.Changed           = &Changed;
@@ -294,10 +304,16 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
     case WM_SIZE:
     { //* 调整窗口大小时，重新设置滚动条的范围和位置
         GetClientRect(Handle, &ClientRect);
+        HScrollInfo.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+        HScrollInfo.nMin  = 0;
+        HScrollInfo.nMax  = MapSize.cx - 1;
+        HScrollInfo.nPage = (PaintArea.right - PaintArea.left) / CUBE;
+        HScrollInfo.nPos  = HPos;
+        SetScrollInfo(Handle, SB_HORZ, &HScrollInfo, TRUE);
         VScrollInfo.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
         VScrollInfo.nMin  = 0;
         VScrollInfo.nMax  = MapSize.cy - 1;
-        VScrollInfo.nPage = (PaintArea.bottom - PaintArea.top) / HttpRequest::Size.cy;
+        VScrollInfo.nPage = (PaintArea.bottom - PaintArea.top) / CUBE;
         VScrollInfo.nPos  = VPos;
         SetScrollInfo(Handle, SB_VERT, &VScrollInfo, TRUE);
         return 0;
@@ -371,19 +387,19 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             {
                 SetFocus(Handle);
                 count = 0;
-                FillRect(HttpRequest::Hdc, &TimeArea, WHITE_BRUSH);
-                FillRect(HttpRequest::Hdc, &WealthRect, WHITE_BRUSH);
-                FillRect(HttpRequest::Hdc, &InfoRect, WHITE_BRUSH);
-                FillRect(HttpRequest::Hdc, &PosRect, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &TimeArea, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &WealthRect, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &ShowRect, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &PosRect, WHITE_BRUSH);
                 SetWindowText(StaticText, TEXT("Erased"));
                 KillTimer(Handle, ID_TIMER);
                 EnterCriticalSection(&EvolutionData::CriticalSection);
                 if (!Stopped) SuspendThread(EvoluThread);
                 LeaveCriticalSection(&EvolutionData::CriticalSection);
                 ProPos = 0;
-                for (vector<HttpRequest> &Temp : Map)
+                for (vector<Cell> &Temp : Map)
                 {
-                    for (HttpRequest &temp : Temp)
+                    for (Cell &temp : Temp)
                     {
                         if (temp.State != DEAD)
                         {
@@ -394,7 +410,7 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
                     }
                 }
                 HBRUSH Brush = CreateSolidBrush(Map[SelectedPoint.x][SelectedPoint.y].Color);
-                FillRgn((HDC)wParam, InfoRgn, Brush);
+                FillRgn((HDC)wParam, CellRgn, Brush);
                 TimeLimit = 1000;
                 TimeSet   = false;
                 SendMessage(ProBar, PBM_SETPOS, ProPos, 0);
@@ -412,18 +428,18 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             {
                 SetFocus(Handle);
                 count = 0;
-                FillRect(HttpRequest::Hdc, &TimeArea, WHITE_BRUSH);
-                FillRect(HttpRequest::Hdc, &WealthRect, WHITE_BRUSH);
-                FillRect(HttpRequest::Hdc, &InfoRect, WHITE_BRUSH);
-                FillRect(HttpRequest::Hdc, &PosRect, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &TimeArea, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &WealthRect, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &ShowRect, WHITE_BRUSH);
+                FillRect(Cell::Hdc, &PosRect, WHITE_BRUSH);
                 KillTimer(Handle, ID_TIMER);
                 EnterCriticalSection(&EvolutionData::CriticalSection);
                 if (Running) SuspendThread(EvoluThread);
                 LeaveCriticalSection(&EvolutionData::CriticalSection);
                 ProPos = 0;
-                for (vector<HttpRequest> &Temp : Map)
+                for (vector<Cell> &Temp : Map)
                 {
-                    for (HttpRequest &temp : Temp)
+                    for (Cell &temp : Temp)
                     {
                         if (temp.State != DEAD)
                         {
@@ -434,7 +450,7 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
                     }
                 }
                 AliveCell.clear();
-                FillRgn(HttpRequest::Hdc, InfoRgn, (HBRUSH)GetStockObject(WHITE_BRUSH));
+                FillRgn(Cell::Hdc, CellRgn, (HBRUSH)GetStockObject(WHITE_BRUSH));
                 TimeLimit = 1000;
                 TimeSet   = false;
                 SendMessage(ProBar, PBM_SETPOS, ProPos, 0);
@@ -458,9 +474,9 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             EnterCriticalSection(&EvolutionData::CriticalSection);
             SuspendThread(EvoluThread);
             ofstream SaveFile("resource/Cell.txt");
-            for (vector<HttpRequest> &Temp : Map)
+            for (vector<Cell> &Temp : Map)
             {
-                for (HttpRequest &temp : Temp)
+                for (Cell &temp : Temp)
                 {
                     if (temp.State != DEAD)
                     {
@@ -489,9 +505,9 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             ifstream ReadFile("resource/Cell.txt");
             EnterCriticalSection(&EvolutionData::CriticalSection);
             if (Running) SuspendThread(EvoluThread);
-            for (vector<HttpRequest> &Temp : Map)
+            for (vector<Cell> &Temp : Map)
             {
-                for (HttpRequest &temp : Temp)
+                for (Cell &temp : Temp)
                 {
                     if (temp.State != DEAD)
                     {
@@ -572,9 +588,9 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         TCHAR TimeText[20];
         _stprintf_s(TimeText, TEXT("%0.1f"), count * 0.1);
         _tcscat_s(TimeText, _countof(TimeText), TEXT("s"));
-        FillRect(AppDC, &TimeArea, WHITE_BRUSH);
-        SelectObject(AppDC, HFont);
-        DrawTextEx(AppDC, TimeText, _tcslen(TimeText), &TimeArea, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
+        FillRect(HDc, &TimeArea, WHITE_BRUSH);
+        SelectObject(HDc, HFont);
+        DrawTextEx(HDc, TimeText, _tcslen(TimeText), &TimeArea, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
         LeaveCriticalSection(&EvolutionData::CriticalSection);
         PostThreadMessage(EvolutionData::EvolutionThreadID, WM_TIMER, 0, 0);
         return 0;
@@ -590,8 +606,8 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         DrawTextEx((HDC)wParam, Wealth, _tcslen(Wealth), &WealthRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
         DrawTextEx((HDC)wParam, Limit, _tcslen(Limit), &LimitRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
         HBRUSH Brush = CreateSolidBrush(Map[SelectedPoint.x][SelectedPoint.y].Color);
-        FillRgn((HDC)wParam, InfoRgn, Changed ? Brush : WHITE_BRUSH);
-        FrameRgn((HDC)wParam, InfoRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
+        FillRgn((HDC)wParam, CellRgn, Changed ? Brush : WHITE_BRUSH);
+        FrameRgn((HDC)wParam, CellRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
         DeleteObject(Brush);
         LeaveCriticalSection(&EvolutionData::CriticalSection);
         return TRUE;
@@ -600,12 +616,14 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
     { //*绘图
         EnterCriticalSection(&EvolutionData::CriticalSection);
         BeginPaint(Handle, &Ps);
+        HScrollInfo.fMask = SIF_POS;
         VScrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
         GetScrollInfo(Handle, SB_VERT, &VScrollInfo);
-        int LeftLimit   = max((int)(Ps.rcPaint.left - DataArea.right) / HttpRequest::Size.cy, 0) /* + HScrollInfo.nPos */,
-            RightLimit  = 1; // 重绘制区域的右边界
-        int TopLimit    = Ps.rcPaint.top / HttpRequest::Size.cy + VScrollInfo.nPos,
-            BottomLimit = max((int)(Ps.rcPaint.bottom / HttpRequest::Size.cy) + VScrollInfo.nPos, TopLimit + 1);
+        int LeftLimit   = max((int)(Ps.rcPaint.left - DataArea.right) / CUBE, 0) + HScrollInfo.nPos,
+            RightLimit  = max((int)((Ps.rcPaint.right - DataArea.right) / CUBE) + HScrollInfo.nPos, LeftLimit + 1);
+        int TopLimit    = Ps.rcPaint.top / CUBE + VScrollInfo.nPos,
+            BottomLimit = max((int)(Ps.rcPaint.bottom / CUBE) + VScrollInfo.nPos, TopLimit + 1);
         RECT Cell;
         for (int n = TopLimit; n < BottomLimit; n++)
         {
@@ -613,13 +631,13 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             {
                 SetRect(
                     &Cell,
-                    DataArea.right /*  + m * CUBE - HScrollInfo.nPos * CUBE */,
-                    (n - VScrollInfo.nPos) * HttpRequest::Size.cy,
-                    DataArea.right + (m + 1) * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                    ((n + 1) - VScrollInfo.nPos) * HttpRequest::Size.cy
+                    DataArea.right + m * CUBE - HScrollInfo.nPos * CUBE,
+                    n * CUBE - VScrollInfo.nPos * CUBE,
+                    DataArea.right + (m + 1) * CUBE - HScrollInfo.nPos * CUBE,
+                    (n + 1) * CUBE - VScrollInfo.nPos * CUBE
                 );
                 HBRUSH Brush = CreateSolidBrush(Map[n][m].Color);
-                FillRect(AppDC, &Cell, Brush);
+                FillRect(HDc, &Cell, Brush);
                 DeleteObject(Brush);
             }
         }
@@ -633,20 +651,21 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         POINT MouPos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         SetFocus(Handle);
         if (!PtInRect(&PaintArea, MouPos)) return 0;
+        HScrollInfo.fMask = SIF_POS;
         VScrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
         GetScrollInfo(Handle, SB_VERT, &VScrollInfo);
-        MouPos = { (GET_X_LPARAM(lParam) - DataArea.right) / HttpRequest::Size.cx /*  + HScrollInfo.nPos */,
-                   (GET_Y_LPARAM(lParam)) / HttpRequest::Size.cy + VScrollInfo.nPos };
+        MouPos = { (GET_X_LPARAM(lParam) - DataArea.right) / CUBE + HScrollInfo.nPos, (GET_Y_LPARAM(lParam)) / CUBE + VScrollInfo.nPos };
         HBRUSH HBrush;
-        RECT Cell;
+        RECT Ceil;
         SetRect(
-            &Cell,
-            DataArea.right + MouPos.x * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-            (MouPos.y - VScrollInfo.nPos) * HttpRequest::Size.cy,
-            DataArea.right + (MouPos.x + 1) * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-            ((MouPos.y + 1) - VScrollInfo.nPos) * HttpRequest::Size.cy
+            &Ceil,
+            DataArea.right + MouPos.x * CUBE - HScrollInfo.nPos * CUBE,
+            MouPos.y * CUBE - VScrollInfo.nPos * CUBE,
+            DataArea.right + (MouPos.x + 1) * CUBE - HScrollInfo.nPos * CUBE,
+            (MouPos.y + 1) * CUBE - VScrollInfo.nPos * CUBE
         );
-        SubtractRect(&Cell, &Cell, &DataArea);
+        SubtractRect(&Ceil, &Ceil, &DataArea);
         EnterCriticalSection(&EvolutionData::CriticalSection);
         if (!Map[MouPos.y][MouPos.x].State)
         {
@@ -661,17 +680,17 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         SelectedPoint         = { MouPos.y, MouPos.x };
         EvoluData.ZoomCellPos = &Map[MouPos.y][MouPos.x].Position;
         HBrush                = CreateSolidBrush(Map[MouPos.y][MouPos.x].Color);
-        FillRect(HttpRequest::Hdc, &Cell, HBrush);
-        FillRgn(HttpRequest::Hdc, InfoRgn, HBrush);
-        FrameRgn(HttpRequest::Hdc, InfoRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
+        FillRect(Cell::Hdc, &Ceil, HBrush);
+        FillRgn(Cell::Hdc, CellRgn, HBrush);
+        FrameRgn(Cell::Hdc, CellRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
         TCHAR PosText[20];
         _stprintf_s(PosText, TEXT("(%d,%d)"), MouPos.x, MouPos.y);
-        FillRect(HttpRequest::Hdc, &PosRect, WHITE_BRUSH);
-        DrawText(HttpRequest::Hdc, PosText, _tcslen(PosText), &PosRect, DT_LEFT | DT_SINGLELINE);
+        FillRect(Cell::Hdc, &PosRect, WHITE_BRUSH);
+        DrawText(Cell::Hdc, PosText, _tcslen(PosText), &PosRect, DT_LEFT | DT_SINGLELINE);
         TCHAR WealthText[20];
         _stprintf_s(WealthText, TEXT("%d"), Map[MouPos.y][MouPos.x].Wealth);
-        FillRect(HttpRequest::Hdc, &ValueRect, WHITE_BRUSH);
-        DrawTextEx(HttpRequest::Hdc, WealthText, _tcslen(WealthText), &ValueRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
+        FillRect(Cell::Hdc, &ValueRect, WHITE_BRUSH);
+        DrawTextEx(Cell::Hdc, WealthText, _tcslen(WealthText), &ValueRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
         LeaveCriticalSection(&EvolutionData::CriticalSection);
         DeleteObject(HBrush);
         SetCapture(Handle);
@@ -684,10 +703,11 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         POINT MouPos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         SetFocus(Handle);
         if (!PtInRect(&PaintArea, MouPos)) return 0;
+        HScrollInfo.fMask = SIF_POS;
         VScrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
         GetScrollInfo(Handle, SB_VERT, &VScrollInfo);
-        MouPos = { (GET_X_LPARAM(lParam) - DataArea.right) / HttpRequest::Size.cx /*  + HScrollInfo.nPos */,
-                   (GET_Y_LPARAM(lParam)) / HttpRequest::Size.cy + VScrollInfo.nPos };
+        MouPos = { (GET_X_LPARAM(lParam) - DataArea.right) / CUBE + HScrollInfo.nPos, (GET_Y_LPARAM(lParam)) / CUBE + VScrollInfo.nPos };
         EnterCriticalSection(&EvolutionData::CriticalSection);
         if (Map[MouPos.y][MouPos.x].State)
         {
@@ -698,13 +718,13 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             RECT Cell;
             SetRect(
                 &Cell,
-                DataArea.right + MouPos.x * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                (MouPos.y - VScrollInfo.nPos) * HttpRequest::Size.cy,
-                DataArea.right + (MouPos.x + 1) * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                ((MouPos.y + 1) - VScrollInfo.nPos) * HttpRequest::Size.cy
+                DataArea.right + MouPos.x * CUBE - HScrollInfo.nPos * CUBE,
+                MouPos.y * CUBE - VScrollInfo.nPos * CUBE,
+                DataArea.right + (MouPos.x + 1) * CUBE - HScrollInfo.nPos * CUBE,
+                (MouPos.y + 1) * CUBE - VScrollInfo.nPos * CUBE
             );
             SubtractRect(&Cell, &Cell, &DataArea);
-            FillRect(HttpRequest::Hdc, &Cell, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
+            FillRect(Cell::Hdc, &Cell, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
             Changed = TRUE;
             MouPos  = { MouPos.y, MouPos.x };
             for (auto it = AliveCell.begin(); it != AliveCell.end(); it++)
@@ -718,16 +738,16 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         }
         SelectedPoint         = { MouPos.y, MouPos.x };
         EvoluData.ZoomCellPos = &Map[MouPos.y][MouPos.x].Position;
-        FillRgn(HttpRequest::Hdc, InfoRgn, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
-        FrameRgn(HttpRequest::Hdc, InfoRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
+        FillRgn(Cell::Hdc, CellRgn, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
+        FrameRgn(Cell::Hdc, CellRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
         TCHAR PosText[20];
         _stprintf_s(PosText, TEXT("(%d,%d)"), MouPos.x, MouPos.y);
-        FillRect(HttpRequest::Hdc, &PosRect, WHITE_BRUSH);
-        DrawText(HttpRequest::Hdc, PosText, _tcslen(PosText), &PosRect, DT_LEFT | DT_SINGLELINE);
+        FillRect(Cell::Hdc, &PosRect, WHITE_BRUSH);
+        DrawText(Cell::Hdc, PosText, _tcslen(PosText), &PosRect, DT_LEFT | DT_SINGLELINE);
         TCHAR WealthText[20];
         _stprintf_s(WealthText, TEXT("%d"), Map[MouPos.y][MouPos.x].Wealth);
-        FillRect(HttpRequest::Hdc, &ValueRect, WHITE_BRUSH);
-        DrawTextEx(HttpRequest::Hdc, WealthText, _tcslen(WealthText), &ValueRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
+        FillRect(Cell::Hdc, &ValueRect, WHITE_BRUSH);
+        DrawTextEx(Cell::Hdc, WealthText, _tcslen(WealthText), &ValueRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
         LeaveCriticalSection(&EvolutionData::CriticalSection);
         SetCapture(Handle);
         return 0;
@@ -782,10 +802,12 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
     { //*鼠标移动
         POINT MouPos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
         if (!PtInRect(&PaintArea, MouPos)) return 0;
+        HScrollInfo.fMask = SIF_POS;
         VScrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
         GetScrollInfo(Handle, SB_VERT, &VScrollInfo);
-        MouPos = { (GET_X_LPARAM(lParam) - DataArea.right) / HttpRequest::Size.cx /*  + HScrollInfo.nPos */,
-                   (GET_Y_LPARAM(lParam)) / HttpRequest::Size.cy + VScrollInfo.nPos };
+        MouPos = { ((GET_X_LPARAM(lParam) - DataArea.right) / CUBE) + HScrollInfo.nPos, GET_Y_LPARAM(lParam) / CUBE + VScrollInfo.nPos };
+
         EnterCriticalSection(&EvolutionData::CriticalSection);
         if (!Map[MouPos.y][MouPos.x].State && IsLTracking)
         {
@@ -799,23 +821,23 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             RECT Cell;
             SetRect(
                 &Cell,
-                DataArea.right + MouPos.x * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                (MouPos.y - VScrollInfo.nPos) * HttpRequest::Size.cy,
-                DataArea.right + (MouPos.x + 1) * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                ((MouPos.y + 1) - VScrollInfo.nPos) * HttpRequest::Size.cy
+                DataArea.right + MouPos.x * CUBE - HScrollInfo.nPos * CUBE,
+                MouPos.y * CUBE - VScrollInfo.nPos * CUBE,
+                DataArea.right + (MouPos.x + 1) * CUBE - HScrollInfo.nPos * CUBE,
+                (MouPos.y + 1) * CUBE - VScrollInfo.nPos * CUBE
             );
             SubtractRect(&Cell, &Cell, &DataArea);
-            FillRect(HttpRequest::Hdc, &Cell, HBrush);
+            FillRect(Cell::Hdc, &Cell, HBrush);
             EvoluData.ZoomCellPos = &Map[MouPos.y][MouPos.x].Position;
-            FillRgn(HttpRequest::Hdc, InfoRgn, HBrush);
+            FillRgn(Cell::Hdc, CellRgn, HBrush);
             TCHAR PosText[20];
             _stprintf_s(PosText, TEXT("(%d,%d)"), MouPos.x, MouPos.y);
-            FillRect(HttpRequest::Hdc, &PosRect, WHITE_BRUSH);
-            DrawText(HttpRequest::Hdc, PosText, _tcslen(PosText), &PosRect, DT_LEFT | DT_SINGLELINE);
+            FillRect(Cell::Hdc, &PosRect, WHITE_BRUSH);
+            DrawText(Cell::Hdc, PosText, _tcslen(PosText), &PosRect, DT_LEFT | DT_SINGLELINE);
             TCHAR WealthText[20];
             _stprintf_s(WealthText, TEXT("%d"), Map[MouPos.y][MouPos.x].Wealth);
-            FillRect(HttpRequest::Hdc, &ValueRect, WHITE_BRUSH);
-            DrawTextEx(HttpRequest::Hdc, WealthText, _tcslen(WealthText), &ValueRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
+            FillRect(Cell::Hdc, &ValueRect, WHITE_BRUSH);
+            DrawTextEx(Cell::Hdc, WealthText, _tcslen(WealthText), &ValueRect, DT_LEFT | DT_SINGLELINE, &DrawTextParams);
             DeleteObject(HBrush);
             Changed = true;
         }
@@ -828,16 +850,16 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
             RECT Cell;
             SetRect(
                 &Cell,
-                DataArea.right + MouPos.x * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                (MouPos.y - VScrollInfo.nPos) * HttpRequest::Size.cy,
-                DataArea.right + (MouPos.x + 1) * HttpRequest::Size.cx /* - HScrollInfo.nPos * CUBE */,
-                ((MouPos.y + 1) - VScrollInfo.nPos) * HttpRequest::Size.cy
+                DataArea.right + MouPos.x * CUBE - HScrollInfo.nPos * CUBE,
+                MouPos.y * CUBE - VScrollInfo.nPos * CUBE,
+                DataArea.right + (MouPos.x + 1) * CUBE - HScrollInfo.nPos * CUBE,
+                (MouPos.y + 1) * CUBE - VScrollInfo.nPos * CUBE
             );
             SubtractRect(&Cell, &Cell, &DataArea);
             SelectedPoint = { MouPos.y, MouPos.x };
-            FillRect(HttpRequest::Hdc, &Cell, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
+            FillRect(Cell::Hdc, &Cell, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
             EvoluData.ZoomCellPos = &Map[MouPos.y][MouPos.x].Position;
-            FillRgn(HttpRequest::Hdc, InfoRgn, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
+            FillRgn(Cell::Hdc, CellRgn, (HBRUSH)GetClassLongPtr(Handle, GCLP_HBRBACKGROUND));
             Changed = true;
             MouPos  = { MouPos.y, MouPos.x };
             for (auto it = AliveCell.begin(); it != AliveCell.end(); it++)
@@ -849,12 +871,40 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
                 }
             }
         }
-        FrameRgn(HttpRequest::Hdc, InfoRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
+        FrameRgn(Cell::Hdc, CellRgn, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
         LeaveCriticalSection(&EvolutionData::CriticalSection);
         if (TimeSet && (IsLTracking || IsRTracking))
         {
             KillTimer(Handle, ID_TIMER);
             TimeSet = FALSE;
+        }
+        return 0;
+    }
+    case WM_HSCROLL:
+    { //*水平滚动条
+        HScrollInfo.fMask = SIF_ALL;
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
+        HPos = HScrollInfo.nPos;
+        switch (LOWORD(wParam))
+        {
+        case SB_LINELEFT  : HScrollInfo.nPos -= 1; break;
+        case SB_LINERIGHT : HScrollInfo.nPos += 1; break;
+        case SB_PAGELEFT  : HScrollInfo.nPos -= HScrollInfo.nPage / 2; break;
+        case SB_PAGERIGHT : HScrollInfo.nPos += HScrollInfo.nPage / 2; break;
+        case SB_THUMBTRACK: HScrollInfo.nPos = HScrollInfo.nTrackPos; break;
+        case SB_LEFT      : HScrollInfo.nPos = HScrollInfo.nMin; break;
+        case SB_RIGHT     : HScrollInfo.nPos = HScrollInfo.nMax; break;
+        }
+        HScrollInfo.fMask = SIF_POS;
+        SetScrollInfo(Handle, SB_HORZ, &HScrollInfo, TRUE);
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
+        if (HScrollInfo.nPos != HPos)
+        {
+            EnterCriticalSection(&EvolutionData::CriticalSection);
+            ScrollWindow(Handle, (HPos - HScrollInfo.nPos) * CUBE, 0, &PaintArea, &PaintArea);
+            HPos = HScrollInfo.nPos;
+            UpdateWindow(Handle);
+            LeaveCriticalSection(&EvolutionData::CriticalSection);
         }
         return 0;
     }
@@ -880,7 +930,7 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         if (VScrollInfo.nPos != VPos)
         {
             EnterCriticalSection(&EvolutionData::CriticalSection);
-            ScrollWindow(Handle, 0, (VPos - VScrollInfo.nPos) * HttpRequest::Size.cy, &PaintArea, &PaintArea);
+            ScrollWindow(Handle, 0, (VPos - VScrollInfo.nPos) * CUBE, &PaintArea, &PaintArea);
             VPos = VScrollInfo.nPos;
             UpdateWindow(Handle);
             LeaveCriticalSection(&EvolutionData::CriticalSection);
@@ -899,8 +949,27 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         if (VScrollInfo.nPos != VPos)
         {
             EnterCriticalSection(&EvolutionData::CriticalSection);
-            ScrollWindow(Handle, 0, (VPos - VScrollInfo.nPos) * HttpRequest::Size.cy, &PaintArea, &PaintArea);
+            ScrollWindow(Handle, 0, (VPos - VScrollInfo.nPos) * CUBE, &PaintArea, &PaintArea);
             VPos = VScrollInfo.nPos;
+            UpdateWindow(Handle);
+            LeaveCriticalSection(&EvolutionData::CriticalSection);
+        }
+        return 0;
+    }
+    case WM_MOUSEHWHEEL:
+    { //*鼠标横向滚轮
+        HScrollInfo.fMask = SIF_ALL;
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
+        HPos              = HScrollInfo.nPos;
+        HScrollInfo.nPos -= GET_WHEEL_DELTA_WPARAM(wParam) / 5;
+        HScrollInfo.fMask = SIF_POS;
+        SetScrollInfo(Handle, SB_HORZ, &HScrollInfo, TRUE);
+        GetScrollInfo(Handle, SB_HORZ, &HScrollInfo);
+        if (HScrollInfo.nPos != HPos)
+        {
+            EnterCriticalSection(&EvolutionData::CriticalSection);
+            ScrollWindow(Handle, (HPos - HScrollInfo.nPos) * CUBE, 0, &PaintArea, &PaintArea);
+            HPos = HScrollInfo.nPos;
             UpdateWindow(Handle);
             LeaveCriticalSection(&EvolutionData::CriticalSection);
         }
@@ -934,9 +1003,9 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
                 EnableWindow(ButErase, FALSE);
                 Enableing = FALSE;
                 ofstream SaveFile("resource/Cell.txt");
-                for (vector<HttpRequest> &Temp : Map)
+                for (vector<Cell> &Temp : Map)
                 {
-                    for (HttpRequest &temp : Temp)
+                    for (Cell &temp : Temp)
                     {
                         if (temp.State != DEAD)
                         {
@@ -974,10 +1043,10 @@ LRESULT CALLBACK WindowProcess(HWND Handle, UINT Msg, WPARAM wParam, LPARAM lPar
         PostThreadMessage(EvolutionData::EvolutionThreadID, WM_QUIT, 0, 0);
         DeleteObject(HFont);
         DeleteObject(HFon);
-        DeleteObject(InfoRgn);
+        DeleteObject(CellRgn);
         CloseHandle(EvoluThread);
         DeleteObject(Font);
-        ReleaseDC(Handle, AppDC);
+        ReleaseDC(Handle, HDc);
         DeleteCriticalSection(&EvolutionData::CriticalSection);
         return 0;
     }

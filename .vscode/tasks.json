@@ -35,7 +35,7 @@
             "label": "Compile_Commands",
             "group": "build",
             "detail": "生成Compile_Commands.json",
-            "command": "xmake project -k compile_commands -o .vscode",
+            "command": "xmake project -k compile_commands",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"

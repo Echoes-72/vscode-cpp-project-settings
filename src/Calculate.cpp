@@ -7,7 +7,7 @@
     ChannelGraph[AliveCell[after].x * MapSize.cy + AliveCell[after].y][AliveCell[before].x * MapSize.cy + AliveCell[before].y]
 static vector<vector<POINT>> Path(1);
 extern SIZE MapSize;
-extern vector<vector<HttpRequest>> Map;
+extern vector<vector<Cell>> Map;
 extern vector<POINT> AliveCell;
 extern vector<vector<vector<POINT>>> ChannelGraph;
 vector<vector<CalculateData>> CalculateMap = vector<vector<CalculateData>>(MapSize.cx, vector<CalculateData>(MapSize.cy));

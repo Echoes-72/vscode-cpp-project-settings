@@ -5,7 +5,7 @@ target("App")
     set_arch("x64")
     set_languages("c++17")
     set_toolchains("llvm")
-    set_toolset("cxx", "clang++")
+    --set_toolset("cxx", "clang++")
     set_toolset("mrc", "windres")
 
     set_encodings("source:utf-8", "target:utf-8")

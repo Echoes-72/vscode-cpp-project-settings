@@ -1,5 +1,11 @@
 #pragma once
 #include "Cell.hpp"
+#include <vector>
+extern SIZE MapSize;
+extern vector<vector<Cell>> Map;
+extern vector<vector<vector<POINT>>> ChannelGraph;
+extern vector<POINT> AliveCell;
+extern vector<vector<float>> CommitmentGraph;
 
 class EvolutionData
 {

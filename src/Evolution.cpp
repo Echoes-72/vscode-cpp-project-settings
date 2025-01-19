@@ -1,12 +1,4 @@
 #include "../Include/Evolution.hpp"
-
-#include <vector>
-
-extern SIZE MapSize;
-extern vector<vector<HttpRequest>> Map;
-extern vector<vector<vector<POINT>>> ChannelGraph;
-extern vector<POINT> AliveCell;
-extern vector<vector<float>> CommitmentGraph;
 // #include <iostream>
 // #include <algorithm>
 #define TributePath                                                                            \
@@ -169,20 +161,20 @@ DWORD WINAPI Evoulution(LPVOID Paramter)
                 Map[static_cast<EvolutionData *>(Paramter)->ZoomCellPos->y][static_cast<EvolutionData *>(Paramter)->ZoomCellPos->x].Color
             );
             FillRgn(
-                HttpRequest::Hdc,
+                Cell::Hdc,
                 static_cast<EvolutionData *>(Paramter)->ZoomCellRegion,
                 *static_cast<EvolutionData *>(Paramter)->Changed ? Brush : WHITE_BRUSH
             );
-            FrameRgn(HttpRequest::Hdc, static_cast<EvolutionData *>(Paramter)->ZoomCellRegion, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
+            FrameRgn(Cell::Hdc, static_cast<EvolutionData *>(Paramter)->ZoomCellRegion, (HBRUSH)GetStockObject(BLACK_BRUSH), 1, 1);
             TCHAR WealthText[20];
             _stprintf_s(
                 WealthText,
                 TEXT("%d"),
                 Map[static_cast<EvolutionData *>(Paramter)->ZoomCellPos->y][static_cast<EvolutionData *>(Paramter)->ZoomCellPos->x].Wealth
             );
-            FillRect(HttpRequest::Hdc, &static_cast<EvolutionData *>(Paramter)->ValueRect, WHITE_BRUSH);
+            FillRect(Cell::Hdc, &static_cast<EvolutionData *>(Paramter)->ValueRect, WHITE_BRUSH);
             DrawTextEx(
-                HttpRequest::Hdc,
+                Cell::Hdc,
                 WealthText,
                 _tcslen(WealthText),
                 &static_cast<EvolutionData *>(Paramter)->ValueRect,
@@ -205,7 +197,7 @@ DWORD WINAPI Evoulution(LPVOID Paramter)
                                      DataArea.right + (Temp.y - HPos + 1) * CUBE,
                                      DataArea.top + (Temp.x - VPos + 1) * CUBE };
                     HBRUSH Brush = CreateSolidBrush(Map[Temp.x][Temp.y].Color);
-                    FillRect(HttpRequest::Hdc, &CELL, Brush);
+                    FillRect(Cell::Hdc, &CELL, Brush);
                     DeleteObject(Brush);
                 }
             }
