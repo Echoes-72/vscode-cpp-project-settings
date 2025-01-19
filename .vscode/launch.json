@@ -6,22 +6,23 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/debug/App.exe",
+            "preLaunchTask": "Debug Compile",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
-            "externalConsole": false,
             "console": "integratedTerminal" // 将控制台输出和输入设置在vscode集成终端里
         },
-        { // CodeLLDB:扩展提供
+        { // CodeLLDB:扩展提供---Windows上只有MSVC编译的东西才能完整支持lldb的功能
             "name": "LLDB",
             "type": "lldb",
             "request": "launch",
             "program": "${workspaceFolder}/bin/debug/App.exe",
-            "cwd": "${workspaceFolder}/bin/debug",
-            "stopOnEntry": false,
-            "args": [],
             "preLaunchTask": "Debug Compile",
+            "args": [],
+            "stopOnEntry": false,
+            "cwd": "${workspaceFolder}/bin/debug",
+            "env": {},
             "console": "integratedTerminal" // 将控制台输出和输入设置在vscode集成终端里
         },
     ]
