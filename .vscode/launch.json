@@ -8,7 +8,7 @@
             "program": "${workspaceFolder}/bin/debug/App",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/bin/debug",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -29,7 +29,6 @@
             "cwd": "${workspaceFolder}/bin/debug",
             "stopOnEntry": false,
             "initCommands": [
-                "command script import ${workspaceRoot}/resource/debugvisual.py" // <<<<< This is the important bit
             ],
             "args": [],
             "preLaunchTask": "Debug Compile",

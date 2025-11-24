@@ -1,5 +1,4 @@
 bin
-resource/Cell.txt
 .cache
 .xmake
 compile_commands.json
