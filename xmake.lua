@@ -1,4 +1,6 @@
 set_config("buildir", ".vscode/build")
+add_requires("opencv4","ffmpeg")
+
 
 rule("Glsl")
     set_extensions(".frag", ".vert", ".comp")
@@ -18,29 +20,33 @@ rule("Glsl")
         end, {files = sourcefile})
     end)
 
+
 target("App")
     set_kind("binary")
     set_plat("linux")
     set_arch("x64")
     set_languages("c++17")
     set_toolchains("llvm")
-    set_toolset("cxx", "clang++")
-    set_encodings("source:utf-8", "target:utf-8")
 
-    add_links("glfw", "vulkan", "dl", "pthread", "X11", "Xxf86vm", "Xrandr", "Xi")
+    set_encodings("source:utf-8", "target:utf-8")
+    add_cxxflags()
+
+    add_rules("Glsl")
+    add_files("res/shaders/*.frag","res/shaders/*.vert")
+
+    
+    add_packages("opencv4","ffmpeg")
+    add_links()
+    add_ldflags()
 
     add_includedirs("include")
-    add_files("main.cpp", {defines={"UNICODE","_UNICODE"}})
-    
-    add_rules("Glsl")
-    add_files("resource/shaders/*.frag","resource/shaders/*.vert")
-
+    add_files("main.cpp","src/*.cpp", {defines={"UNICODE","_UNICODE"}})
 
     if is_mode("debug") then --明确指定debug模式
         -- 添加DEBUG编译宏
         add_defines("DEBUG")
         -- 设置目标文件存放目录
-        set_targetdir("bin/debug")
+        set_targetdir(".vscode/bin/debug")
         -- 启用调试符号
         set_symbols("debug")
         -- 禁用优化
@@ -49,7 +55,7 @@ target("App")
 
     if is_mode("release") then
         -- 设置目标文件存放目录
-        set_targetdir("bin/release")
+        set_targetdir(".vscode/bin/release")
         set_optimize("fastest")
     end
     

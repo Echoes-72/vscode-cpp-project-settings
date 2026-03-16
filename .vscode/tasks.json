@@ -18,10 +18,10 @@
         },
         {
             "type": "shell",
-            "label": "Release Compile",
+            "label": "Release Compile And Run",
             "group": "build",
             "detail": "Release 构建",
-            "command": "xmake clean -a && xmake f -m release && xmake -j15 -v",
+            "command": "xmake clean -a && xmake f -m release && xmake -j15 -v && xmake run App 0",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"
