@@ -5,10 +5,12 @@
             "name": "GDB",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/debug/App",
-            "args": [],
+            "program": "${workspaceFolder}/.vscode/bin/debug/App",
+            "args": [
+                "0"
+            ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/bin/debug",
+            "cwd": "${workspaceFolder}/.vscode/bin/debug",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -25,12 +27,13 @@
             "name": "LLDB",
             "type": "lldb",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/debug/App",
-            "cwd": "${workspaceFolder}/bin/debug",
+            "program": "${workspaceFolder}/.vscode/bin/debug/App",
+            "cwd": "${workspaceFolder}/.vscode/bin/debug",
             "stopOnEntry": false,
-            "initCommands": [
+            "initCommands": [],
+            "args": [
+                "0"
             ],
-            "args": [],
             "preLaunchTask": "Debug Compile",
         },
     ]

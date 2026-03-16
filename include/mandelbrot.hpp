@@ -1,1 +1,0 @@
-void mandelbrot(int image[], int xdim, int ydim, int max_iter);
