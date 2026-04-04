@@ -1,6 +1,5 @@
 set_config("buildir", ".vscode/build")
-add_requires("opencv4","ffmpeg")
-
+add_requires("opencv4","avcodec","avformat","avutil","swscale")
 
 rule("Glsl")
     set_extensions(".frag", ".vert", ".comp")
@@ -23,24 +22,19 @@ rule("Glsl")
 
 target("App")
     set_kind("binary")
-    set_plat("linux")
-    set_arch("x64")
-    set_languages("c++17")
-    set_toolchains("llvm")
 
     set_encodings("source:utf-8", "target:utf-8")
     add_cxxflags()
-
-    add_rules("Glsl")
-    add_files("res/shaders/*.frag","res/shaders/*.vert")
-
     
-    add_packages("opencv4","ffmpeg")
+    add_packages("opencv4","avformat","avcodec","avutil","swscale")
     add_links()
     add_ldflags()
 
     add_includedirs("include")
     add_files("main.cpp","src/*.cpp", {defines={"UNICODE","_UNICODE"}})
+
+    add_rules("Glsl")
+    add_files("res/shaders/*.frag","res/shaders/*.vert")
 
     if is_mode("debug") then --明确指定debug模式
         -- 添加DEBUG编译宏

@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
     Streamer streamer;
     StreamerConfig streamer_config(cap_frame_width, cap_frame_height,
                                    640, 480,
-                                   stream_fps, bitrate, "main", "rtmp://127.0.0.1:1935/hls/orangepi");
+                                   stream_fps, bitrate, "main", "rtmp://192.168.5.21:1935/hls/orangepi");
 
     streamer.enable_av_debug_log();
 
