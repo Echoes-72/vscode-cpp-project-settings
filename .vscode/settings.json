@@ -1,3 +1,8 @@
 {
-    "C_Cpp.intelliSenseEngine": "disabled"
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.enable": true,
+    // --query-driver参数指定了clangd在解析代码时使用的编译器路径，这对于正确解析和提供代码智能功能非常重要。这里指定了一个路径，指向了一个特定版本的GCC编译器，适用于ARM架构的Linux系统。这意味着clangd将使用这个编译器来解析代码，从而提供更准确的代码分析和智能提示。 */
+    "clangd.arguments": [
+        "--query-driver=/run/media/echo/C/Code_Enviroment/CrossToolchains/gcc-arm-11.2-2022.02-x86_64-aarch64-none-linux-gnu/bin/*"
+    ]
 }

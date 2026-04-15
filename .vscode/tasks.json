@@ -5,7 +5,7 @@
             "type": "shell",
             "label": "Debug Compile",
             "group": "build",
-            "detail": "Debug 编译",
+            "detail": "本地 Debug 构建",
             "command": "xmake clean -a && xmake f -m debug && xmake build -j15 -v App",
             "args": [],
             "icon": {
@@ -20,8 +20,36 @@
             "type": "shell",
             "label": "Release Compile And Run",
             "group": "build",
-            "detail": "Release 构建",
+            "detail": "本地 Release 构建运行 ",
             "command": "xmake clean -a && xmake f -m release && xmake -j15 -v && xmake run App 0",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Release Cross Compile",
+            "group": "build",
+            "detail": "交叉 Release 构建",
+            "command": "xmake clean -a && xmake f -m cross && xmake -j15 -v ",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Scp To Cross Target",
+            "group": "build",
+            "detail": "Scp 交叉构建产物到目标设备",
+            "command": "scp -r ${workspaceFolder}/.vscode/bin/cross/App.so orangepi@orangepi5B:/home/orangepi/bs/OrganPi/bin",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"
@@ -35,7 +63,7 @@
             "label": "Compile_Commands",
             "group": "build",
             "detail": "生成compile_commands.json",
-            "command": "xmake project -k compile_commands .vscode",
+            "command": "xmake project -k compile_commands .vscode ",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"

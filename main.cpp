@@ -1,4 +1,5 @@
 #include "streamer.hpp"
+#include "rknn.hpp"
 
 #include <string>
 #include <opencv2/opencv.hpp>
@@ -74,10 +75,7 @@ static void add_delay(size_t streamed_frames, size_t fps, double elapsed, double
     }
 }
 
-void process_frame(const cv::Mat &in, cv::Mat &out)
-{
-    in.copyTo(out);
-}
+
 
 
 void stream_frame(Streamer &streamer, const cv::Mat &image)
@@ -121,7 +119,7 @@ int main(int argc, char *argv[])
     Streamer streamer;
     StreamerConfig streamer_config(cap_frame_width, cap_frame_height,
                                    640, 480,
-                                   stream_fps, bitrate, "main", "rtmp://192.168.5.21:1935/hls/orangepi");
+                                   stream_fps, bitrate, "main", "rtmp://10.192.230.210:1935/hls/orangepi");
 
     streamer.enable_av_debug_log();
 
@@ -145,7 +143,7 @@ int main(int argc, char *argv[])
     auto frame_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
 
     while(ok) {
-        process_frame(read_frame, proc_frame);
+        rknn_process_frame(read_frame, proc_frame);
         // 切入点,模型推理处理
 
         stream_frame(streamer, proc_frame, frame_time.count()*streamer.inv_stream_timebase);
