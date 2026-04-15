@@ -70,7 +70,8 @@ static int set_options_and_open_encoder(
         codec_ctx->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
     }
 
-    stream->time_base = codec_ctx->time_base; // will be set afterwards by avformat_write_header to 1/1000
+    stream->time_base = codec_ctx->time_base; // will be set afterwards by
+                                              // avformat_write_header to 1/1000
 
     int ret = avcodec_parameters_from_context(stream->codecpar, codec_ctx);
     if (ret < 0)
@@ -191,7 +192,7 @@ int Streamer::init(const StreamerConfig &streamer_config)
     }
 
     // use selected codec
-    AVCodecID codec_id = AV_CODEC_ID_H264;
+    AVCodecID codec_id       = AV_CODEC_ID_H264;
     const char *encoder_name = "libx264";
 
     for (int i = 0; i < 4; i++)
@@ -204,7 +205,7 @@ int Streamer::init(const StreamerConfig &streamer_config)
         }
     }
 
-    if(out_codec==NULL)
+    if (out_codec == NULL)
     {
 
         std::cout << "could not find encoder:" << encoder_name << std::endl;

@@ -1,18 +1,17 @@
-#include "streamer.hpp"
 #include "rknn.hpp"
+#include "streamer.hpp"
 
-#include <string>
-#include <opencv2/opencv.hpp>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <opencv2/opencv.hpp>
+#include <string>
 #include <unistd.h>
-#include <chrono>
 
 using namespace streamer;
 
-using time_point = std::chrono::high_resolution_clock::time_point;
+using time_point            = std::chrono::high_resolution_clock::time_point;
 using high_resolution_clock = std::chrono::high_resolution_clock;
-
 
 class MovingAverage
 {
@@ -26,7 +25,7 @@ public:
     {
         size = sz;
         v.resize(size);
-        pos = 0;
+        pos     = 0;
         crossed = false;
     }
 
@@ -34,8 +33,9 @@ public:
     {
         v[pos] = value;
         pos++;
-        if(pos == size) {
-            pos = 0;
+        if (pos == size)
+        {
+            pos     = 0;
             crossed = true;
         }
     }
@@ -43,46 +43,43 @@ public:
     double get_average()
     {
         double avg = 0.0;
-        int last = crossed ? size : pos;
-        int k=0;
-        for(k=0;k<last;k++) {
+        int last   = crossed ? size : pos;
+        int k      = 0;
+        for (k = 0; k < last; k++)
+        {
             avg += v[k];
         }
         return avg / (double)last;
     }
 };
 
-
 static void add_delay(size_t streamed_frames, size_t fps, double elapsed, double avg_frame_time)
 {
-    //compute min number of frames that should have been streamed based on fps and elapsed
-    double dfps = fps;
-    size_t min_streamed = (size_t) (dfps*elapsed);
+    // compute min number of frames that should have been streamed based on fps and elapsed
+    double dfps            = fps;
+    size_t min_streamed    = (size_t)(dfps * elapsed);
     size_t min_plus_margin = min_streamed + 2;
 
-    if(streamed_frames > min_plus_margin) {
-        size_t excess = streamed_frames - min_plus_margin;
+    if (streamed_frames > min_plus_margin)
+    {
+        size_t excess  = streamed_frames - min_plus_margin;
         double dexcess = excess;
 
-        //add a delay ~ excess*processing_time
-//#define SHOW_DELAY
+        // add a delay ~ excess*processing_time
+// #define SHOW_DELAY
 #ifdef SHOW_DELAY
-        double delay = dexcess*avg_frame_time*1000000.0;
+        double delay = dexcess * avg_frame_time * 1000000.0;
         printf("frame %07lu adding delay %.4f\n", streamed_frames, delay);
-        printf("avg fps = %.2f\n", streamed_frames/elapsed);
+        printf("avg fps = %.2f\n", streamed_frames / elapsed);
 #endif
-        usleep(dexcess*avg_frame_time*1000000.0);
+        usleep(dexcess * avg_frame_time * 1000000.0);
     }
 }
-
-
-
 
 void stream_frame(Streamer &streamer, const cv::Mat &image)
 {
     streamer.stream_frame(image.data);
 }
-
 
 void stream_frame(Streamer &streamer, const cv::Mat &image, int64_t frame_duration)
 {
@@ -91,7 +88,8 @@ void stream_frame(Streamer &streamer, const cv::Mat &image, int64_t frame_durati
 
 int main(int argc, char *argv[])
 {
-    if(argc != 2) {
+    if (argc != 2)
+    {
         printf("must provide one command argument with the video file or stream to open\n");
         return 1;
     }
@@ -101,13 +99,14 @@ int main(int argc, char *argv[])
     cv::VideoCapture video_capture;
     video_capture = cv::VideoCapture(video_Index);
 
-    if(!video_capture.isOpened()) {
+    if (!video_capture.isOpened())
+    {
         fprintf(stderr, "could not open video %u\n", video_Index);
         video_capture.release();
         return 1;
     }
 
-    int cap_frame_width = video_capture.get(cv::CAP_PROP_FRAME_WIDTH);
+    int cap_frame_width  = video_capture.get(cv::CAP_PROP_FRAME_WIDTH);
     int cap_frame_height = video_capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
     int cap_fps = video_capture.get(cv::CAP_PROP_FPS);
@@ -117,9 +116,16 @@ int main(int argc, char *argv[])
 
     int bitrate = 500000;
     Streamer streamer;
-    StreamerConfig streamer_config(cap_frame_width, cap_frame_height,
-                                   640, 480,
-                                   stream_fps, bitrate, "main", "rtmp://10.192.230.210:1935/hls/orangepi");
+    StreamerConfig streamer_config(
+        cap_frame_width,
+        cap_frame_height,
+        640,
+        480,
+        stream_fps,
+        bitrate,
+        "main",
+        "rtmp://10.192.230.210:1935/hls/orangepi"
+    );
 
     streamer.enable_av_debug_log();
 
@@ -129,7 +135,7 @@ int main(int argc, char *argv[])
 
     high_resolution_clock clk;
     time_point time_start = clk.now();
-    time_point time_prev = time_start;
+    time_point time_prev  = time_start;
 
     MovingAverage moving_average(10);
     double avg_frame_time;
@@ -139,19 +145,20 @@ int main(int argc, char *argv[])
     bool ok = video_capture.read(read_frame);
 
     time_point time_stop = clk.now();
-    auto elapsed_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
-    auto frame_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
+    auto elapsed_time    = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
+    auto frame_time      = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
 
-    while(ok) {
+    while (ok)
+    {
         rknn_process_frame(read_frame, proc_frame);
         // 切入点,模型推理处理
 
-        stream_frame(streamer, proc_frame, frame_time.count()*streamer.inv_stream_timebase);
-        time_stop = clk.now();
+        stream_frame(streamer, proc_frame, frame_time.count() * streamer.inv_stream_timebase);
+        time_stop    = clk.now();
         elapsed_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
-        frame_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
+        frame_time   = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
 
-        ok = video_capture.read(read_frame);
+        ok        = video_capture.read(read_frame);
         time_prev = time_stop;
     }
     video_capture.release();
