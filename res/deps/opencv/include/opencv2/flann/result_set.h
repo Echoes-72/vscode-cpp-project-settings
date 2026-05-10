@@ -40,9 +40,6 @@
 #include <set>
 #include <vector>
 
-#include "opencv2/core/base.hpp"
-#include "opencv2/core/cvdef.h"
-
 namespace cvflann
 {
 
@@ -360,6 +357,7 @@ public:
     }
 
     /** The number of neighbors in the set
+     * @return
      */
     size_t size() const
     {
@@ -368,6 +366,7 @@ public:
 
     /** The distance of the furthest neighbor
      * If we don't have enough neighbors, it returns the max possible value
+     * @return
      */
     inline DistanceType worstDist() const CV_OVERRIDE
     {
@@ -488,6 +487,7 @@ public:
 
     /** The distance of the furthest neighbor
      * If we don't have enough neighbors, it returns the max possible value
+     * @return
      */
     inline DistanceType worstDist() const CV_OVERRIDE
     {

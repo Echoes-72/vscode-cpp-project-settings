@@ -1,11 +1,15 @@
-#include "rknn.hpp"
+#include "rknn/rkYolov5s.hpp"
+#include "rknn/rknnPool.hpp"
 #include "streamer.hpp"
 
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
+#include <stdio.h>
 #include <string>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 using namespace streamer;
@@ -96,20 +100,20 @@ int main(int argc, char *argv[])
 
     unsigned int video_Index;
     video_Index = std::stoi(std::string(argv[1]));
-    cv::VideoCapture video_capture;
-    video_capture = cv::VideoCapture(video_Index);
+    cv::VideoCapture capture;
+    capture = cv::VideoCapture(video_Index);
 
-    if (!video_capture.isOpened())
+    if (!capture.isOpened())
     {
         fprintf(stderr, "could not open video %u\n", video_Index);
-        video_capture.release();
+        capture.release();
         return 1;
     }
 
-    int cap_frame_width  = video_capture.get(cv::CAP_PROP_FRAME_WIDTH);
-    int cap_frame_height = video_capture.get(cv::CAP_PROP_FRAME_HEIGHT);
+    int cap_frame_width  = capture.get(cv::CAP_PROP_FRAME_WIDTH);
+    int cap_frame_height = capture.get(cv::CAP_PROP_FRAME_HEIGHT);
 
-    int cap_fps = video_capture.get(cv::CAP_PROP_FPS);
+    int cap_fps = capture.get(cv::CAP_PROP_FPS);
     printf("video info w = %d, h = %d, fps = %d\n", cap_frame_width, cap_frame_height, cap_fps);
 
     int stream_fps = cap_fps;
@@ -124,7 +128,7 @@ int main(int argc, char *argv[])
         stream_fps,
         bitrate,
         "main",
-        "rtmp://10.192.230.210:1935/hls/orangepi"
+        "rtmp://10.41.187.210:1935/hls/orangepi"
     );
 
     streamer.enable_av_debug_log();
@@ -140,28 +144,63 @@ int main(int argc, char *argv[])
     MovingAverage moving_average(10);
     double avg_frame_time;
 
-    cv::Mat read_frame;
-    cv::Mat proc_frame;
-    bool ok = video_capture.read(read_frame);
-
     time_point time_stop = clk.now();
     auto elapsed_time    = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
     auto frame_time      = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
 
-    while (ok)
+    // 初始化推理线程池
+    const int threadNum   = 4;
+    const char *modelPath = "model/yolov5s-640-640.rknn";
+    rknnPool<rkYolov5s, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
+    if (testPool.init() != 0)
     {
-        rknn_process_frame(read_frame, proc_frame);
-        // 切入点,模型推理处理
+        printf("rknnPool init fail!\n");
+        return -1;
+    }
 
-        stream_frame(streamer, proc_frame, frame_time.count() * streamer.inv_stream_timebase);
+    // 计算平均帧率
+    struct timeval time;
+    gettimeofday(&time, nullptr);
+    auto startTime = time.tv_sec * 1000 + time.tv_usec / 1000;
+
+    // 开始推理
+    uint frames     = 0;
+    auto beforeTime = startTime;
+
+    while (capture.isOpened())
+    {
+        cv::Mat frame;
+        if (capture.read(frame) == false)
+        {
+            break;
+        };
+        if (testPool.put(frame) != 0)
+        {
+            break;
+        };
+
+        if (frames >= threadNum && testPool.get(frame) != 0)
+        {
+            break;
+        };
+
+        // 推流
+        stream_frame(streamer, frame, frame_time.count() * streamer.inv_stream_timebase);
         time_stop    = clk.now();
         elapsed_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
         frame_time   = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
+        time_prev    = time_stop;
 
-        ok        = video_capture.read(read_frame);
-        time_prev = time_stop;
+        frames++;
+        if (frames % 120 == 0)
+        {
+            gettimeofday(&time, nullptr);
+            auto currentTime = time.tv_sec * 1000 + time.tv_usec / 1000;
+            printf("120帧内平均帧率:\t %f fps/s\n", 120.0 / float(currentTime - beforeTime) * 1000.0);
+            beforeTime = currentTime;
+        }
     }
-    video_capture.release();
+    capture.release();
 
     return 0;
 }

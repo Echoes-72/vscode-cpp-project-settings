@@ -14,7 +14,7 @@ target("App")
     set_encodings("source:utf-8", "target:utf-8")
 
     add_includedirs("include")
-    add_files("main.cpp","src/*.cpp")
+    add_files("main.cpp","src/*.cpp","src/rknn/*.cpp")
 
     if not is_mode("cross") then
         add_packages("avcodec","avformat","avutil","swscale","opencv4")
@@ -48,7 +48,7 @@ target("App")
         local target_arch="aarch64"
         local depsdir = "$(scriptdir)/res/deps/"
         -- 依赖名称
-        local deps={"opencv","ffmpeg","rknn"}
+        local deps={"opencv","ffmpeg","rknn","rga"}
 
         set_plat(target_plat)
         set_arch(target_arch)
@@ -63,9 +63,12 @@ target("App")
 
         -- 编译连接配置
         add_rpathdirs("$ORIGIN/lib",{runpath = true})
+        add_ldflags("-Wl,--allow-shlib-undefined")
         set_optimize("fastest")
         add_links("opencv_core","opencv_videoio","opencv_imgproc","opencv_imgcodecs")
         add_links("avcodec","avdevice","avformat","avfilter","avutil","swresample","swscale")
+        add_links("rknn_api","rknnrt")
+        add_links("rga")
 
         -- 设置安装目录结构
         set_installdir("$(scriptdir)/.vscode/bin/$(mode)/")

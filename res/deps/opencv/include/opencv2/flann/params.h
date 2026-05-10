@@ -72,16 +72,11 @@ struct SearchParams : public IndexParams
 
 
 template<typename T>
-T get_param(const IndexParams& params, const cv::String& name, const T& default_value)
+T get_param(const IndexParams& params, cv::String name, const T& default_value)
 {
     IndexParams::const_iterator it = params.find(name);
     if (it != params.end()) {
-        try {
-            return it->second.cast<T>();
-        } catch (const std::exception& e) {
-            CV_Error_(cv::Error::StsBadArg,
-                      ("FLANN '%s' param type mismatch: %s", name.c_str(), e.what()));
-        }
+        return it->second.cast<T>();
     }
     else {
         return default_value;
@@ -89,16 +84,11 @@ T get_param(const IndexParams& params, const cv::String& name, const T& default_
 }
 
 template<typename T>
-T get_param(const IndexParams& params, const cv::String& name)
+T get_param(const IndexParams& params, cv::String name)
 {
     IndexParams::const_iterator it = params.find(name);
     if (it != params.end()) {
-        try {
-            return it->second.cast<T>();
-        } catch (const std::exception& e) {
-            CV_Error_(cv::Error::StsBadArg,
-                      ("FLANN '%s' param type mismatch: %s", name.c_str(), e.what()));
-        }
+        return it->second.cast<T>();
     }
     else {
         FLANN_THROW(cv::Error::StsBadArg, cv::String("Missing parameter '")+name+cv::String("' in the parameters given"));

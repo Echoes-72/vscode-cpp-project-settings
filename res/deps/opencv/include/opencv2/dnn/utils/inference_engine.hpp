@@ -15,18 +15,14 @@ CV__DNN_INLINE_NS_BEGIN
 
 
 /* Values for 'OPENCV_DNN_BACKEND_INFERENCE_ENGINE_TYPE' parameter */
-/// @deprecated
 #define CV_DNN_BACKEND_INFERENCE_ENGINE_NN_BUILDER_API     "NN_BUILDER"
-/// @deprecated
 #define CV_DNN_BACKEND_INFERENCE_ENGINE_NGRAPH             "NGRAPH"
 
 /** @brief Returns Inference Engine internal backend API.
  *
  * See values of `CV_DNN_BACKEND_INFERENCE_ENGINE_*` macros.
  *
- * `OPENCV_DNN_BACKEND_INFERENCE_ENGINE_TYPE` runtime parameter (environment variable) is ignored since 4.6.0.
- *
- * @deprecated
+ * Default value is controlled through `OPENCV_DNN_BACKEND_INFERENCE_ENGINE_TYPE` runtime parameter (environment variable).
  */
 CV_EXPORTS_W cv::String getInferenceEngineBackendType();
 
@@ -35,8 +31,6 @@ CV_EXPORTS_W cv::String getInferenceEngineBackendType();
  * See values of `CV_DNN_BACKEND_INFERENCE_ENGINE_*` macros.
  *
  * @returns previous value of internal backend API
- *
- * @deprecated
  */
 CV_EXPORTS_W cv::String setInferenceEngineBackendType(const cv::String& newBackendType);
 

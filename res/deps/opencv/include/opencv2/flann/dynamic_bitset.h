@@ -97,6 +97,7 @@ public:
     }
 
     /** @brief set one bit to 0
+     * @param index
      */
     void reset(size_t index)
     {
@@ -107,6 +108,7 @@ public:
      * This function is useful when resetting a given set of bits so that the
      * whole bitset ends up being 0: if that's the case, we don't care about setting
      * other bits to 0
+     * @param index
      */
     void reset_block(size_t index)
     {
@@ -114,6 +116,7 @@ public:
     }
 
     /** resize the bitset so that it contains at least sz bits
+     * @param sz
      */
     void resize(size_t sz)
     {

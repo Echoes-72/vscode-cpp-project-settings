@@ -257,8 +257,8 @@ VSX_IMPL_1VRG(vec_udword2, vec_udword2, vpopcntd, vec_popcntu)
 VSX_IMPL_1VRG(vec_udword2, vec_dword2,  vpopcntd, vec_popcntu)
 
 // converts between single and double-precision
-VSX_REDIRECT_1RG(vec_float4,  vec_double2, vec_cvfo, vec_floate)
-VSX_REDIRECT_1RG(vec_double2, vec_float4,  vec_cvfo, vec_doubleo)
+VSX_REDIRECT_1RG(vec_float4,  vec_double2, vec_cvfo, __builtin_vsx_xvcvdpsp)
+VSX_REDIRECT_1RG(vec_double2, vec_float4,  vec_cvfo, __builtin_vsx_xvcvspdp)
 
 // converts word and doubleword to double-precision
 #undef vec_ctd
@@ -324,7 +324,6 @@ VSX_IMPL_1RG(vec_udword2, vec_float4,  xvcvspuxds, vec_ctulo)
 #define VSX_IMPL_CONVERT(rt, rg, fnm) \
 VSX_FINLINE(rt) fnm(const rg& a) { return __builtin_convertvector(a, rt); }
 
-#ifndef vec_permi
 #if __clang_major__ < 5
 // implement vec_permi in a dirty way
 #   define VSX_IMPL_CLANG_4_PERMI(Tvec)                                                 \
@@ -352,14 +351,12 @@ VSX_FINLINE(rt) fnm(const rg& a) { return __builtin_convertvector(a, rt); }
 // vec_xxpermdi is missing little-endian supports in clang 4 just like gcc4
 #   define vec_permi(a, b, c) vec_xxpermdi(b, a, (3 ^ (((c) & 1) << 1 | (c) >> 1)))
 #endif // __clang_major__ < 5
-#endif
 
 // shift left double by word immediate
 #ifndef vec_sldw
 #   define vec_sldw vec_xxsldwi
 #endif
 
-#if __clang_major__ < 13
 // Implement vec_rsqrt since clang only supports vec_rsqrte
 #ifndef vec_rsqrt
     VSX_FINLINE(vec_float4) vec_rsqrt(const vec_float4& a)
@@ -383,7 +380,6 @@ VSX_FINLINE(vec_udword2) vec_promote(unsigned long long a, int b)
     ret[b & 1] = a;
     return ret;
 }
-#endif
 
 // vec_popcnt should return unsigned but clang has different thought just like gcc in vec_vpopcnt
 #define VSX_IMPL_POPCNTU(Tvec, Tvec2, ucast)   \
@@ -398,6 +394,10 @@ VSX_REDIRECT_1RG(vec_uchar16, vec_uchar16, vec_popcntu, vec_popcnt)
 VSX_REDIRECT_1RG(vec_ushort8, vec_ushort8, vec_popcntu, vec_popcnt)
 VSX_REDIRECT_1RG(vec_uint4,   vec_uint4,   vec_popcntu, vec_popcnt)
 VSX_REDIRECT_1RG(vec_udword2, vec_udword2, vec_popcntu, vec_popcnt)
+
+// converts between single and double precision
+VSX_REDIRECT_1RG(vec_float4,  vec_double2, vec_cvfo, __builtin_vsx_xvcvdpsp)
+VSX_REDIRECT_1RG(vec_double2, vec_float4,  vec_cvfo, __builtin_vsx_xvcvspdp)
 
 // converts word and doubleword to double-precision
 #ifdef vec_ctd
@@ -684,8 +684,7 @@ VSX_IMPL_LOAD_L8(vec_double2, double)
 #endif
 
 // absolute difference
-#ifndef _ARCH_PWR9
-#   undef vec_absd
+#ifndef vec_absd
 #   define vec_absd(a, b) vec_sub(vec_max(a, b), vec_min(a, b))
 #endif
 
