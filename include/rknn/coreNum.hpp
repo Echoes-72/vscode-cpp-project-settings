@@ -9,7 +9,7 @@
 const int RK3588 = 3;
 
 // 设置模型需要绑定的核心
-int get_core_num()
+inline int get_core_num()
 {
     static int core_num = 0;
     static std::mutex mtx;

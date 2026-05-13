@@ -1,4 +1,4 @@
-#include "rknn/rkYolov5s.hpp"
+#include "rknn/rkYolov8Pose.hpp"
 #include "rknn/rknnPool.hpp"
 #include "streamer.hpp"
 
@@ -104,9 +104,9 @@ int main(int argc, char *argv[])
 
     // 初始化 RKNN 推理线程池
     const int threadNum   = 1;
-    const char *modelPath = "model/yolov5s-det.rknn";
+    const char *modelPath = "model/yolov8n-pose.rknn";
 
-    rknnPool<rkYolov5s, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
+    rknnPool<rkYolov8Pose, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
 
     if (testPool.init() != 0)
     {
