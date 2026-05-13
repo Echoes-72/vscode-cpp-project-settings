@@ -1,16 +1,15 @@
-#include <stdio.h>
-#include <mutex>
-#include "rknn/rknn_api.h"
-
-#include "rknn/postprocess.h"
-#include "rknn/preprocess.h"
+#include "rknn/rkYolov5s.hpp"
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-
 #include "rknn/coreNum.hpp"
-#include "rknn/rkYolov5s.hpp"
+#include "rknn/postprocess.h"
+#include "rknn/preprocess.h"
+#include "rknn/rknn_api.h"
+
+#include <mutex>
+#include <stdio.h>
 
 static void dump_tensor_attr(rknn_tensor_attr *attr)
 {
@@ -94,8 +93,8 @@ static int saveFloat(const char *file_name, float *output, int element_size)
 
 rkYolov5s::rkYolov5s(const std::string &model_path)
 {
-    this->model_path = model_path;
-    nms_threshold = NMS_THRESH;      // 默认的NMS阈值
+    this->model_path   = model_path;
+    nms_threshold      = NMS_THRESH; // 默认的NMS阈值
     box_conf_threshold = BOX_THRESH; // 默认的置信度阈值
 }
 
@@ -103,12 +102,10 @@ int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
 {
     printf("Loading model...\n");
     int model_data_size = 0;
-    model_data = load_model(model_path.c_str(), &model_data_size);
+    model_data          = load_model(model_path.c_str(), &model_data_size);
     // 模型参数复用/Model parameter reuse
-    if (share_weight == true)
-        ret = rknn_dup_context(ctx_in, &ctx);
-    else
-        ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
+    if (share_weight == true) ret = rknn_dup_context(ctx_in, &ctx);
+    else ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
     if (ret < 0)
     {
         printf("rknn_init error ret=%d\n", ret);
@@ -119,15 +116,9 @@ int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
     rknn_core_mask core_mask;
     switch (get_core_num())
     {
-    case 0:
-        core_mask = RKNN_NPU_CORE_0;
-        break;
-    case 1:
-        core_mask = RKNN_NPU_CORE_1;
-        break;
-    case 2:
-        core_mask = RKNN_NPU_CORE_2;
-        break;
+    case 0: core_mask = RKNN_NPU_CORE_0; break;
+    case 1: core_mask = RKNN_NPU_CORE_1; break;
+    case 2: core_mask = RKNN_NPU_CORE_2; break;
     }
     ret = rknn_set_core_mask(ctx, core_mask);
     if (ret < 0)
@@ -159,7 +150,7 @@ int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
     for (int i = 0; i < io_num.n_input; i++)
     {
         input_attrs[i].index = i;
-        ret = rknn_query(ctx, RKNN_QUERY_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
+        ret                  = rknn_query(ctx, RKNN_QUERY_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
         if (ret < 0)
         {
             printf("rknn_init error ret=%d\n", ret);
@@ -173,7 +164,7 @@ int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
     for (int i = 0; i < io_num.n_output; i++)
     {
         output_attrs[i].index = i;
-        ret = rknn_query(ctx, RKNN_QUERY_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
+        ret                   = rknn_query(ctx, RKNN_QUERY_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
         dump_tensor_attr(&(output_attrs[i]));
     }
 
@@ -181,23 +172,23 @@ int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
     {
         printf("model is NCHW input fmt\n");
         channel = input_attrs[0].dims[1];
-        height = input_attrs[0].dims[2];
-        width = input_attrs[0].dims[3];
+        height  = input_attrs[0].dims[2];
+        width   = input_attrs[0].dims[3];
     }
     else
     {
         printf("model is NHWC input fmt\n");
-        height = input_attrs[0].dims[1];
-        width = input_attrs[0].dims[2];
+        height  = input_attrs[0].dims[1];
+        width   = input_attrs[0].dims[2];
         channel = input_attrs[0].dims[3];
     }
     printf("model input height=%d, width=%d, channel=%d\n", height, width, channel);
 
     memset(inputs, 0, sizeof(inputs));
-    inputs[0].index = 0;
-    inputs[0].type = RKNN_TENSOR_UINT8;
-    inputs[0].size = width * height * channel;
-    inputs[0].fmt = RKNN_TENSOR_NHWC;
+    inputs[0].index        = 0;
+    inputs[0].type         = RKNN_TENSOR_UINT8;
+    inputs[0].size         = width * height * channel;
+    inputs[0].fmt          = RKNN_TENSOR_NHWC;
     inputs[0].pass_through = 0;
 
     return 0;
@@ -213,7 +204,7 @@ cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
     std::lock_guard<std::mutex> lock(mtx);
     cv::Mat img;
     cv::cvtColor(orig_img, img, cv::COLOR_BGR2RGB);
-    img_width = img.cols;
+    img_width  = img.cols;
     img_height = img.rows;
 
     BOX_RECT pads;
@@ -273,8 +264,21 @@ cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
         out_scales.push_back(output_attrs[i].scale);
         out_zps.push_back(output_attrs[i].zp);
     }
-    post_process((int8_t *)outputs[0].buf, (int8_t *)outputs[1].buf, (int8_t *)outputs[2].buf, height, width,
-                 box_conf_threshold, nms_threshold, pads, scale_w, scale_h, out_zps, out_scales, &detect_result_group);
+    post_process(
+        (int8_t *)outputs[0].buf,
+        (int8_t *)outputs[1].buf,
+        (int8_t *)outputs[2].buf,
+        height,
+        width,
+        box_conf_threshold,
+        nms_threshold,
+        pads,
+        scale_w,
+        scale_h,
+        out_zps,
+        out_scales,
+        &detect_result_group
+    );
 
     // 绘制框体/Draw the box
     char text[256];
@@ -283,14 +287,14 @@ cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
         detect_result_t *det_result = &(detect_result_group.results[i]);
         sprintf(text, "%s %.1f%%", det_result->name, det_result->prop * 100);
         // 打印预测物体的信息/Prints information about the predicted object
-        // printf("%s @ (%d %d %d %d) %f\n", det_result->name, det_result->box.left, det_result->box.top,
-        //        det_result->box.right, det_result->box.bottom, det_result->prop);
+        printf("%s @ (%d %d %d %d) %f\n", det_result->name, det_result->box.left, det_result->box.top,
+               det_result->box.right, det_result->box.bottom, det_result->prop);
         int x1 = det_result->box.left;
         int y1 = det_result->box.top;
         int x2 = det_result->box.right;
         int y2 = det_result->box.bottom;
         rectangle(orig_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(256, 0, 0, 256), 3);
-        putText(orig_img, text, cv::Point(x1, y1 + 12), cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255, 255, 255));
+        // putText(orig_img, text, cv::Point(x1, y1 - 16), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(80, 0, 0), 2);
     }
 
     ret = rknn_outputs_release(ctx, io_num.n_output, outputs);
@@ -304,11 +308,8 @@ rkYolov5s::~rkYolov5s()
 
     ret = rknn_destroy(ctx);
 
-    if (model_data)
-        free(model_data);
+    if (model_data) free(model_data);
 
-    if (input_attrs)
-        free(input_attrs);
-    if (output_attrs)
-        free(output_attrs);
+    if (input_attrs) free(input_attrs);
+    if (output_attrs) free(output_attrs);
 }

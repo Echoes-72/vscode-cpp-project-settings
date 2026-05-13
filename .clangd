@@ -3,10 +3,10 @@
         "CompilationDatabase": ".vscode"
     },
     "Diagnostics": {
-        "Suppress": [],
+        "Suppress": ["unused-includes"],
         "ClangTidy": {
             "Add": [],
-            "Remove": [],
+            "Remove": ["misc-definitions-in-headers"],
             "FastCheckFilter": "Strict"
         }
     }

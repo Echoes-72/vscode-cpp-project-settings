@@ -3,32 +3,18 @@
     "tasks": [
         {
             "type": "shell",
-            "label": "Debug Compile",
+            "label": "Cross Compile And Install To OrangePi",
             "group": "build",
-            "detail": "本地 Debug 构建",
-            "command": "xmake uninstall ; xmake clean -a && xmake f -m debug && xmake -j15 -v App && xmake install",
-            "args": [],
+            "detail": "交叉 Release 构建",
+            "dependsOn": [
+                "Release Cross Compile",
+                "Scp To Cross Target"
+            ],
+            "dependsOrder": "sequence",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"
             },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
-        },
-        {
-            "type": "shell",
-            "label": "Release Compile And Run",
-            "group": "build",
-            "detail": "本地 Release 构建运行 ",
-            "command": "xmake uninstall ; xmake clean -a && xmake f -m release && xmake -j15 -v && xmake install &&xmake run App 0",
-            "icon": {
-                "color": "terminal.ansiGreen",
-                "id": "run"
-            },
-            "options": {
-                "cwd": "${workspaceFolder}"
-            }
         },
         {
             "type": "shell",
