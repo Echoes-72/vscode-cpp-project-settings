@@ -294,7 +294,7 @@ cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
         int x2 = det_result->box.right;
         int y2 = det_result->box.bottom;
         rectangle(orig_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(256, 0, 0, 256), 3);
-        // putText(orig_img, text, cv::Point(x1, y1 - 16), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(80, 0, 0), 2);
+        putText(orig_img, text, cv::Point(x1, y1 - 16), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(80, 0, 0), 2);
     }
 
     ret = rknn_outputs_release(ctx, io_num.n_output, outputs);

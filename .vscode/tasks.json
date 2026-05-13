@@ -35,7 +35,7 @@
             "label": "Scp To Cross Target",
             "group": "build",
             "detail": "Scp 交叉构建产物到目标设备",
-            "command": "scp -r ${workspaceFolder}/.vscode/bin/cross/Orangepi.so orangepi@orangepi5B:/home/orangepi/bs/OrganPi/bin",
+            "command": "scp -r ${workspaceFolder}/.vscode/bin/cross/* orangepi@orangepi5B:/home/orangepi/bs/OrganPi/bin",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"

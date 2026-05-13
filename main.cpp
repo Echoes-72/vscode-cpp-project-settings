@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 
     // 初始化 RKNN 推理线程池
     const int threadNum   = 1;
-    const char *modelPath = "model/yolov8n-pose.rknn";
+    const char *modelPath = "model/yolov5s-det.rknn";
 
     rknnPool<rkYolov5s, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
 
