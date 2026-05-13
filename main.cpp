@@ -1,8 +1,8 @@
-#include "rknn/rkYolov5s.hpp"
+#include "rknn/rkYolov8Pose.hpp"
 #include "rknn/rknnPool.hpp"
 #include "streamer.hpp"
 
-#include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <opencv2/opencv.hpp>
@@ -14,112 +14,56 @@
 
 using namespace streamer;
 
-using time_point            = std::chrono::high_resolution_clock::time_point;
-using high_resolution_clock = std::chrono::high_resolution_clock;
-
-class MovingAverage
-{
-    int size;
-    int pos;
-    bool crossed;
-    std::vector<double> v;
-
-public:
-    explicit MovingAverage(int sz)
-    {
-        size = sz;
-        v.resize(size);
-        pos     = 0;
-        crossed = false;
-    }
-
-    void add_value(double value)
-    {
-        v[pos] = value;
-        pos++;
-        if (pos == size)
-        {
-            pos     = 0;
-            crossed = true;
-        }
-    }
-
-    double get_average()
-    {
-        double avg = 0.0;
-        int last   = crossed ? size : pos;
-        int k      = 0;
-        for (k = 0; k < last; k++)
-        {
-            avg += v[k];
-        }
-        return avg / (double)last;
-    }
-};
-
-static void add_delay(size_t streamed_frames, size_t fps, double elapsed, double avg_frame_time)
-{
-    // compute min number of frames that should have been streamed based on fps and elapsed
-    double dfps            = fps;
-    size_t min_streamed    = (size_t)(dfps * elapsed);
-    size_t min_plus_margin = min_streamed + 2;
-
-    if (streamed_frames > min_plus_margin)
-    {
-        size_t excess  = streamed_frames - min_plus_margin;
-        double dexcess = excess;
-
-        // add a delay ~ excess*processing_time
-// #define SHOW_DELAY
-#ifdef SHOW_DELAY
-        double delay = dexcess * avg_frame_time * 1000000.0;
-        printf("frame %07lu adding delay %.4f\n", streamed_frames, delay);
-        printf("avg fps = %.2f\n", streamed_frames / elapsed);
-#endif
-        usleep(dexcess * avg_frame_time * 1000000.0);
-    }
-}
-
-void stream_frame(Streamer &streamer, const cv::Mat &image)
-{
-    streamer.stream_frame(image.data);
-}
-
-void stream_frame(Streamer &streamer, const cv::Mat &image, int64_t frame_duration)
-{
-    streamer.stream_frame(image.data, frame_duration);
-}
-
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
-    {
-        printf("must provide one command argument with the video file or stream to open\n");
-        return 1;
-    }
 
-    unsigned int video_Index;
-    video_Index = std::stoi(std::string(argv[1]));
     cv::VideoCapture capture;
-    capture = cv::VideoCapture(video_Index);
+
+    // 视频文件的输入路径
+    if (argc == 2)
+    {
+        capture.open(argv[1]);
+    }
+    else
+    {
+        unsigned int video_Index = 20;
+        try
+        {
+            // video_Index = std::stoi(std::string(argv[1]));
+            capture.open(video_Index);
+        }
+        catch (...)
+        {
+            fprintf(stderr, "invalid camera index: %s\n", argv[1]);
+            return 1;
+        }
+    }
 
     if (!capture.isOpened())
     {
-        fprintf(stderr, "could not open video %u\n", video_Index);
+        fprintf(stderr, "could not open video %s\n", argv[1]);
         capture.release();
         return 1;
     }
 
-    int cap_frame_width  = capture.get(cv::CAP_PROP_FRAME_WIDTH);
-    int cap_frame_height = capture.get(cv::CAP_PROP_FRAME_HEIGHT);
+    int cap_frame_width  = static_cast<int>(capture.get(cv::CAP_PROP_FRAME_WIDTH));
+    int cap_frame_height = static_cast<int>(capture.get(cv::CAP_PROP_FRAME_HEIGHT));
+    int cap_fps          = static_cast<int>(capture.get(cv::CAP_PROP_FPS));
 
-    int cap_fps = capture.get(cv::CAP_PROP_FPS);
+    // 很多摄像头通过 OpenCV 获取 FPS 时可能返回 0 或异常值
+    if (cap_fps <= 0 || cap_fps > 120)
+    {
+        cap_fps = 25;
+    }
+
+    int stream_fps = 15;
+
     printf("video info w = %d, h = %d, fps = %d\n", cap_frame_width, cap_frame_height, cap_fps);
 
-    int stream_fps = cap_fps;
-
     int bitrate = 500000;
+
     Streamer streamer;
+
     StreamerConfig streamer_config(
         cap_frame_width,
         cap_frame_height,
@@ -131,75 +75,135 @@ int main(int argc, char *argv[])
         "rtmp://10.41.187.210:1935/hls/orangepi"
     );
 
-    streamer.enable_av_debug_log();
+    // streamer.enable_av_debug_log();
 
-    streamer.init(streamer_config);
+    if (streamer.init(streamer_config) != 0)
+    {
+        fprintf(stderr, "streamer init failed\n");
+        capture.release();
+        return 1;
+    }
 
-    size_t streamed_frames = 0;
+    // 固定每帧 duration，避免 DTS/PTS 抖动
+    // 假设 streamer.inv_stream_timebase 是 time_base 的倒数
+    int64_t frame_duration = streamer.inv_stream_timebase / stream_fps;
+    printf("frame_duration: %ld\ninv_stream_timebase: %f\n", frame_duration, streamer.inv_stream_timebase);
 
-    high_resolution_clock clk;
-    time_point time_start = clk.now();
-    time_point time_prev  = time_start;
+    if (frame_duration <= 0)
+    {
+        fprintf(
+            stderr,
+            "invalid frame_duration: %ld, inv_stream_timebase: %f, stream_fps: %d\n",
+            frame_duration,
+            streamer.inv_stream_timebase,
+            stream_fps
+        );
+        capture.release();
+        return 1;
+    }
 
-    MovingAverage moving_average(10);
-    double avg_frame_time;
+    // 初始化 RKNN 推理线程池
+    const int threadNum   = 1;
+    const char *modelPath = "model/yolov8n-pose.rknn";
 
-    time_point time_stop = clk.now();
-    auto elapsed_time    = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
-    auto frame_time      = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
+    rknnPool<rkYolov8Pose, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
 
-    // 初始化推理线程池
-    const int threadNum   = 4;
-    const char *modelPath = "model/yolov5s-640-640.rknn";
-    rknnPool<rkYolov5s, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
     if (testPool.init() != 0)
     {
         printf("rknnPool init fail!\n");
+        capture.release();
         return -1;
     }
 
-    // 计算平均帧率
+    // FPS 统计
     struct timeval time;
     gettimeofday(&time, nullptr);
-    auto startTime = time.tv_sec * 1000 + time.tv_usec / 1000;
 
-    // 开始推理
-    uint frames     = 0;
+    auto startTime  = time.tv_sec * 1000 + time.tv_usec / 1000;
     auto beforeTime = startTime;
+
+    uint frames = 0;
 
     while (capture.isOpened())
     {
         cv::Mat frame;
-        if (capture.read(frame) == false)
+
+        if (!capture.read(frame))
         {
             break;
-        };
+        }
+
+        if (frame.empty())
+        {
+            continue;
+        }
+
         if (testPool.put(frame) != 0)
         {
+            fprintf(stderr, "testPool put failed\n");
             break;
-        };
+        }
 
-        if (frames >= threadNum && testPool.get(frame) != 0)
+        // 前 threadNum 帧只用于填满推理流水线
+        // 避免前几帧没有推理结果却直接推流
+        if (frames < threadNum)
         {
-            break;
-        };
+            frames++;
+            continue;
+        }
 
-        // 推流
-        stream_frame(streamer, frame, frame_time.count() * streamer.inv_stream_timebase);
-        time_stop    = clk.now();
-        elapsed_time = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_start);
-        frame_time   = std::chrono::duration_cast<std::chrono::duration<double>>(time_stop - time_prev);
-        time_prev    = time_stop;
+        if (testPool.get(frame) != 0)
+        {
+            fprintf(stderr, "testPool get failed\n");
+            break;
+        }
+
+        if (frame.empty())
+        {
+            continue;
+        }
+
+        // 使用固定 duration 推流
+        streamer.stream_frame(frame.data, frame_duration);
 
         frames++;
+
         if (frames % 120 == 0)
         {
             gettimeofday(&time, nullptr);
             auto currentTime = time.tv_sec * 1000 + time.tv_usec / 1000;
-            printf("120帧内平均帧率:\t %f fps/s\n", 120.0 / float(currentTime - beforeTime) * 1000.0);
+
+            printf("Fps: %f/s\n", 120.0 / float(currentTime - beforeTime) * 1000.0);
+
             beforeTime = currentTime;
         }
     }
+
+    // 清空推理线程池中剩余的结果
+    while (true)
+    {
+        cv::Mat frame;
+
+        if (testPool.get(frame) != 0)
+        {
+            break;
+        }
+
+        if (frame.empty())
+        {
+            continue;
+        }
+
+        streamer.stream_frame(frame.data, frame_duration);
+
+        frames++;
+    }
+
+    gettimeofday(&time, nullptr);
+    auto endTime = time.tv_sec * 1000 + time.tv_usec / 1000;
+
+    printf("Average:\t %f fps/s\n", float(frames) / float(endTime - startTime) * 1000.0);
+
     capture.release();
 
     return 0;
