@@ -14,7 +14,8 @@ target("App")
     set_encodings("source:utf-8", "target:utf-8")
 
     add_includedirs("include")
-    add_files("main.cpp","src/*.cpp","src/rknn/*.cpp")
+    add_files("main.cpp","src/*.cpp","src/rknn/*.cpp","src/net/*.cpp")
+    add_syslinks("pthread")
 
     if not is_mode("cross") then
         add_packages("avcodec","avformat","avutil","swscale","opencv4")
