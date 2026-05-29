@@ -19,6 +19,7 @@
 #define _im2d_task_h_
 
 #include "im2d_type.h"
+#include <cstddef>
 
 #ifdef __cplusplus
 

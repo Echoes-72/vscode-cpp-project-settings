@@ -134,9 +134,7 @@ void EdgeWebSocketClient::worker_loop()
         std::string payload;
         {
             std::unique_lock<std::mutex> lock(queue_mutex_);
-            queue_cv_.wait_for(lock, std::chrono::milliseconds(500), [this] {
-                return !running_ || !queue_.empty();
-            });
+            queue_cv_.wait_for(lock, std::chrono::milliseconds(500), [this] { return !running_ || !queue_.empty(); });
 
             if (!running_)
             {
@@ -168,7 +166,7 @@ bool EdgeWebSocketClient::connect_server()
 {
     close_socket();
 
-    addrinfo hints {};
+    addrinfo hints{};
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_family   = AF_UNSPEC;
 
@@ -216,7 +214,7 @@ bool EdgeWebSocketClient::connect_server()
         return false;
     }
 
-    char response[1024] {};
+    char response[1024]{};
     ssize_t received = ::recv(socket_fd_, response, sizeof(response) - 1, 0);
     if (received <= 0)
     {
@@ -276,7 +274,7 @@ bool EdgeWebSocketClient::send_next_message(const std::string &payload)
         }
     }
 
-    unsigned char mask[4] {};
+    unsigned char mask[4]{};
     std::random_device rd;
     for (unsigned char &byte : mask)
     {
@@ -301,8 +299,7 @@ void EdgeWebSocketClient::drain_incoming()
 
     char buffer[512];
     while (::recv(socket_fd_, buffer, sizeof(buffer), MSG_DONTWAIT) > 0)
-    {
-    }
+    {}
 }
 
 bool EdgeWebSocketClient::parse_url(const std::string &url, ParsedUrl &parsed)
@@ -313,11 +310,11 @@ bool EdgeWebSocketClient::parse_url(const std::string &url, ParsedUrl &parsed)
         return false;
     }
 
-    std::string rest = url.substr(prefix.size());
+    std::string rest      = url.substr(prefix.size());
     std::size_t slash_pos = rest.find('/');
     std::string host_port = slash_pos == std::string::npos ? rest : rest.substr(0, slash_pos);
 
-    parsed.path = slash_pos == std::string::npos ? "/" : rest.substr(slash_pos);
+    parsed.path           = slash_pos == std::string::npos ? "/" : rest.substr(slash_pos);
     std::size_t colon_pos = host_port.rfind(':');
     if (colon_pos == std::string::npos)
     {
@@ -375,29 +372,29 @@ DetectionEvent EdgeWebSocketClient::make_demo_event(std::uint64_t frame_index)
     const bool trapped = (frame_index / 240) % 5 == 4;
     if (trapped)
     {
-        event.door_state = "CLOSED";
-        event.behavior = frame_index % 2 == 0 ? "KNOCKING_DOOR" : "LONG_STAY";
+        event.door_state          = "CLOSED";
+        event.behavior            = frame_index % 2 == 0 ? "KNOCKING_DOOR" : "LONG_STAY";
         event.behavior_confidence = 0.82 + 0.08 * std::sin(static_cast<double>(frame_index) / 17.0);
-        event.dwell_seconds = 35 + static_cast<int>(frame_index % 35);
+        event.dwell_seconds       = 35 + static_cast<int>(frame_index % 35);
     }
     else
     {
-        event.door_state = frame_index % 180 < 28 ? "OPEN" : "CLOSED";
-        event.behavior = event.door_state == "OPEN" ? "ENTERING" : "STANDING";
+        event.door_state          = frame_index % 180 < 28 ? "OPEN" : "CLOSED";
+        event.behavior            = event.door_state == "OPEN" ? "ENTERING" : "STANDING";
         event.behavior_confidence = 0.68 + 0.14 * std::sin(static_cast<double>(frame_index) / 23.0);
-        event.dwell_seconds = event.door_state == "CLOSED" ? static_cast<int>(frame_index % 28) : 0;
+        event.dwell_seconds       = event.door_state == "CLOSED" ? static_cast<int>(frame_index % 28) : 0;
     }
 
     for (int i = 0; i < event.people_count; ++i)
     {
         DetectionBox box;
-        box.id = "person-" + std::to_string(frame_index) + "-" + std::to_string(i);
-        box.label = i == 0 ? event.behavior : "PERSON";
+        box.id         = "person-" + std::to_string(frame_index) + "-" + std::to_string(i);
+        box.label      = i == 0 ? event.behavior : "PERSON";
         box.confidence = clamp(event.behavior_confidence - i * 0.04, 0.18, 0.99);
-        box.x = clamp(0.12 + i * 0.21 + 0.02 * std::sin(static_cast<double>(frame_index + i) / 13.0), 0.03, 0.78);
-        box.y = clamp(0.15 + 0.03 * std::cos(static_cast<double>(frame_index + i) / 19.0), 0.08, 0.34);
-        box.width = 0.18;
-        box.height = 0.58;
+        box.x          = clamp(0.12 + i * 0.21 + 0.02 * std::sin(static_cast<double>(frame_index + i) / 13.0), 0.03, 0.78);
+        box.y          = clamp(0.15 + 0.03 * std::cos(static_cast<double>(frame_index + i) / 19.0), 0.08, 0.34);
+        box.width      = 0.18;
+        box.height     = 0.58;
         event.detections.push_back(box);
     }
 
@@ -412,13 +409,13 @@ std::string EdgeWebSocketClient::json_escape(const std::string &value)
         switch (ch)
         {
         case '\\': escaped << "\\\\"; break;
-        case '"': escaped << "\\\""; break;
+        case '"' : escaped << "\\\""; break;
         case '\b': escaped << "\\b"; break;
         case '\f': escaped << "\\f"; break;
         case '\n': escaped << "\\n"; break;
         case '\r': escaped << "\\r"; break;
         case '\t': escaped << "\\t"; break;
-        default: escaped << ch; break;
+        default  : escaped << ch; break;
         }
     }
     return escaped.str();
@@ -426,7 +423,7 @@ std::string EdgeWebSocketClient::json_escape(const std::string &value)
 
 std::string EdgeWebSocketClient::make_websocket_key()
 {
-    unsigned char bytes[16] {};
+    unsigned char bytes[16]{};
     std::random_device rd;
     for (unsigned char &byte : bytes)
     {

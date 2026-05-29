@@ -157,7 +157,7 @@ void Streamer::stream_frame(const uint8_t *data, int64_t frame_duration)
 
 void Streamer::enable_av_debug_log()
 {
-    av_log_set_level(AV_LOG_DEBUG);
+    av_log_set_level(AV_LOG_VERBOSE);
 }
 
 int Streamer::init(const StreamerConfig &streamer_config)

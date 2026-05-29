@@ -1,4 +1,4 @@
-#include "rknn/rkYolov8Pose.hpp"
+#include "rknn/YolovPose.hpp"
 
 #include "opencv2/imgproc/imgproc.hpp"
 #include "rknn/coreNum.hpp"
@@ -394,15 +394,15 @@ void draw_pose(cv::Mat &image, const PoseResult &pose, float keypoint_threshold)
 
     char text[64];
     snprintf(text, sizeof(text), "person %.1f%%", pose.score * 100.0f);
-    cv::putText(
-        image,
-        text,
-        cv::Point(pose.box.x, std::max(0, pose.box.y - 8)),
-        cv::FONT_HERSHEY_SIMPLEX,
-        0.6,
-        cv::Scalar(0, 128, 255),
-        2
-    );
+    // cv::putText(
+    //     image,
+    //     text,
+    //     cv::Point(pose.box.x, std::max(0, pose.box.y - 8)),
+    //     cv::FONT_HERSHEY_SIMPLEX,
+    //     0.6,
+    //     cv::Scalar(0, 128, 255),
+    //     2
+    // );
 
     for (const auto &link : kSkeleton)
     {
@@ -424,7 +424,7 @@ void draw_pose(cv::Mat &image, const PoseResult &pose, float keypoint_threshold)
 }
 } // namespace
 
-rkYolov8Pose::rkYolov8Pose(const std::string &model_path)
+YolovPose::YolovPose(const std::string &model_path)
 {
     this->model_path   = model_path;
     model_data         = NULL;
@@ -436,7 +436,7 @@ rkYolov8Pose::rkYolov8Pose(const std::string &model_path)
     keypoint_threshold = 0.30f;
 }
 
-int rkYolov8Pose::init(rknn_context *ctx_in, bool share_weight)
+int YolovPose::init(rknn_context *ctx_in, bool share_weight)
 {
     printf("Loading YOLOv8 pose model...\n");
     int model_data_size = 0;
@@ -550,12 +550,12 @@ int rkYolov8Pose::init(rknn_context *ctx_in, bool share_weight)
     return 0;
 }
 
-rknn_context *rkYolov8Pose::get_pctx()
+rknn_context *YolovPose::get_pctx()
 {
     return &ctx;
 }
 
-cv::Mat rkYolov8Pose::infer(cv::Mat &orig_img)
+cv::Mat YolovPose::infer(cv::Mat &orig_img)
 {
     std::lock_guard<std::mutex> lock(mtx);
 
@@ -637,7 +637,7 @@ cv::Mat rkYolov8Pose::infer(cv::Mat &orig_img)
     return orig_img;
 }
 
-rkYolov8Pose::~rkYolov8Pose()
+YolovPose::~YolovPose()
 {
     if (ctx)
     {

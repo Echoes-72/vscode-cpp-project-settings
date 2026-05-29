@@ -1,1 +1,6 @@
-bbbbbbbbbbb
+angry
+fear
+happy
+neutral
+sad
+happy

@@ -1,4 +1,5 @@
-#include "rknn/rkYolov8Pose.hpp"
+#include "rknn/YolovDet.hpp"
+#include "rknn/YolovPose.hpp"
 #include "rknn/rknnPool.hpp"
 #include "streamer.hpp"
 
@@ -56,7 +57,7 @@ int main(int argc, char *argv[])
         cap_fps = 25;
     }
 
-    int stream_fps = 15;
+    int stream_fps = 30;
 
     printf("video info w = %d, h = %d, fps = %d\n", cap_frame_width, cap_frame_height, cap_fps);
 
@@ -64,16 +65,14 @@ int main(int argc, char *argv[])
 
     Streamer streamer;
 
-    StreamerConfig streamer_config(
-        cap_frame_width,
-        cap_frame_height,
-        640,
-        480,
-        stream_fps,
-        bitrate,
-        "main",
-        "rtmp://10.41.187.210:1935/hls/orangepi"
-    );
+    StreamerConfig streamer_config(cap_frame_width,
+                                   cap_frame_height,
+                                   640,
+                                   480,
+                                   stream_fps,
+                                   bitrate,
+                                   "main",
+                                   "rtmp://10.251.247.210:1935/hls/orangepi");
 
     // streamer.enable_av_debug_log();
 
@@ -84,6 +83,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    streamer.enable_av_debug_log();
+
     // 固定每帧 duration，避免 DTS/PTS 抖动
     // 假设 streamer.inv_stream_timebase 是 time_base 的倒数
     int64_t frame_duration = streamer.inv_stream_timebase / stream_fps;
@@ -91,24 +92,26 @@ int main(int argc, char *argv[])
 
     if (frame_duration <= 0)
     {
-        fprintf(
-            stderr,
-            "invalid frame_duration: %ld, inv_stream_timebase: %f, stream_fps: %d\n",
-            frame_duration,
-            streamer.inv_stream_timebase,
-            stream_fps
-        );
+        fprintf(stderr,
+                "invalid frame_duration: %ld, inv_stream_timebase: %f, stream_fps: %d\n",
+                frame_duration,
+                streamer.inv_stream_timebase,
+                stream_fps);
         capture.release();
         return 1;
     }
 
     // 初始化 RKNN 推理线程池
-    const int threadNum   = 1;
-    const char *modelPath = "model/yolov8n-pose.rknn";
+    const int threadNum       = 4;
+    const char *PosemodelPath = "model/pose.rknn";
+    const char *DetmodelPath  = "model/doors.rknn";
+    const char *FacialPath    = "model/facial.rknn";
 
-    rknnPool<rkYolov8Pose, cv::Mat, cv::Mat> testPool(modelPath, threadNum);
+    rknnPool<YolovPose, cv::Mat, cv::Mat> PosePool(PosemodelPath, threadNum);
+    rknnPool<YolovDet, cv::Mat, cv::Mat> DetPool(DetmodelPath, threadNum);
+    rknnPool<YolovDet, cv::Mat, cv::Mat> DetPool1(FacialPath, threadNum);
 
-    if (testPool.init() != 0)
+    if (PosePool.init() != 0)
     {
         printf("rknnPool init fail!\n");
         capture.release();
@@ -138,9 +141,9 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (testPool.put(frame) != 0)
+        if (PosePool.put(frame) != 0)
         {
-            fprintf(stderr, "testPool put failed\n");
+            fprintf(stderr, "PosePool put failed\n");
             break;
         }
 
@@ -152,9 +155,9 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (testPool.get(frame) != 0)
+        if (PosePool.get(frame) != 0)
         {
-            fprintf(stderr, "testPool get failed\n");
+            fprintf(stderr, "PosePool get failed\n");
             break;
         }
 
@@ -184,7 +187,7 @@ int main(int argc, char *argv[])
     {
         cv::Mat frame;
 
-        if (testPool.get(frame) != 0)
+        if (PosePool.get(frame) != 0)
         {
             break;
         }

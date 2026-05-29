@@ -21,27 +21,6 @@ target("App")
         add_packages("avcodec","avformat","avutil","swscale","opencv4")
     end
 
-    if is_mode("debug") then --明确指定debug模式
-        -- 添加DEBUG编译宏
-        add_defines("DEBUG")
-        -- 设置目标文件存放目录
-        -- set_targetdir(".vscode/bin/debug")
-
-        set_installdir("$(scriptdir)/.vscode/bin/$(arch)/${mode}")
-        -- 启用调试符号
-        set_symbols("debug")
-        -- 禁用优化
-        set_optimize("none")
-    end
-
-    if is_mode("release") then
-        -- 设置目标文件存放目录
-        -- set_targetdir(".vscode/bin/release")  
-
-        set_installdir("$(scriptdir)/.vscode/bin/$(arch)/${mode}")      
-        set_optimize("fastest")
-    end
-
     if is_mode("cross") then
         set_toolchains("aarch64")
 

@@ -1,4 +1,4 @@
-#include "rknn/rkYolov5s.hpp"
+#include "rknn/YolovDet.hpp"
 
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -91,14 +91,14 @@ static int saveFloat(const char *file_name, float *output, int element_size)
     return 0;
 }
 
-rkYolov5s::rkYolov5s(const std::string &model_path)
+YolovDet::YolovDet(const std::string &model_path)
 {
     this->model_path   = model_path;
     nms_threshold      = NMS_THRESH; // 默认的NMS阈值
     box_conf_threshold = BOX_THRESH; // 默认的置信度阈值
 }
 
-int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
+int YolovDet::init(rknn_context *ctx_in, bool share_weight)
 {
     printf("Loading model...\n");
     int model_data_size = 0;
@@ -194,12 +194,12 @@ int rkYolov5s::init(rknn_context *ctx_in, bool share_weight)
     return 0;
 }
 
-rknn_context *rkYolov5s::get_pctx()
+rknn_context *YolovDet::get_pctx()
 {
     return &ctx;
 }
 
-cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
+cv::Mat YolovDet::infer(cv::Mat &orig_img)
 {
     std::lock_guard<std::mutex> lock(mtx);
     cv::Mat img;
@@ -287,8 +287,15 @@ cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
         detect_result_t *det_result = &(detect_result_group.results[i]);
         sprintf(text, "%s %.1f%%", det_result->name, det_result->prop * 100);
         // 打印预测物体的信息/Prints information about the predicted object
-        printf("%s @ (%d %d %d %d) %f\n", det_result->name, det_result->box.left, det_result->box.top,
-               det_result->box.right, det_result->box.bottom, det_result->prop);
+        printf(
+            "%s @ (%d %d %d %d) %f\n",
+            det_result->name,
+            det_result->box.left,
+            det_result->box.top,
+            det_result->box.right,
+            det_result->box.bottom,
+            det_result->prop
+        );
         int x1 = det_result->box.left;
         int y1 = det_result->box.top;
         int x2 = det_result->box.right;
@@ -302,7 +309,7 @@ cv::Mat rkYolov5s::infer(cv::Mat &orig_img)
     return orig_img;
 }
 
-rkYolov5s::~rkYolov5s()
+YolovDet::~YolovDet()
 {
     deinitPostProcess();
 
