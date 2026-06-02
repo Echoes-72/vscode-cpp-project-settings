@@ -1,25 +1,6 @@
 set_config("buildir", ".vscode/build")
 add_requires("opencv4","avcodec","avformat","avutil","swscale")
 
-rule("Glsl")
-    set_extensions(".frag", ".vert", ".comp")
-    on_build_file(function (target, sourcefile, opt)
-        import("core.project.depend")
-
-        -- 确保构建目录存在
-        os.mkdir(path.join(target:targetdir() , path.directory(sourcefile)))
-        -- print("targetdir:", target:targetdir() .. path.directory(sourcefile))
-        
-        local targetfile = path.join(target:targetdir(), sourcefile .. ".spv")
-        
-        -- 只在文件改变时重新构建
-        depend.on_changed(function ()
-            -- 调用 pandoc 将 markdown 转换为 html
-            os.vrunv('glslc', {sourcefile, "-o", targetfile})
-        end, {files = sourcefile})
-    end)
-
-
 target("App")
     set_kind("binary")
 
