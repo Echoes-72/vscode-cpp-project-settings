@@ -19,12 +19,12 @@ rule("Glsl")
     end)
 
 target("App")
+    set_toolset("clang")
+
     set_kind("binary")
     set_plat("linux")
     set_arch("x64")
     set_languages("c++17")
-    set_toolchains("llvm")
-    set_toolset("cxx", "clang++")
     set_encodings("source:utf-8", "target:utf-8")
 
     add_links("glfw", "vulkan", "dl", "pthread", "X11", "Xxf86vm", "Xrandr", "Xi")
