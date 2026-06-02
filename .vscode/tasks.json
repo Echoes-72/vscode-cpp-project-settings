@@ -21,7 +21,7 @@
             "label": "Release Cross Compile",
             "group": "build",
             "detail": "交叉 Release 构建",
-            "command": "xmake uninstall ; xmake clean -a  && xmake f -m cross && xmake -j15 -v && xmake install",
+            "command": "xmake uninstall ; xmake clean -a  && xmake f -m cross && xmake -j15 && xmake install",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "run"
