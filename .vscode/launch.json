@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        { // C/C++:扩展提供
+            "name": "GDB",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/debug/App",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/bin/debug",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Debug Compile"
+        },
+        { // CodeLLDB:扩展提供
+            "name": "LLDB",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/debug/App",
+            "cwd": "${workspaceFolder}/bin/debug",
+            "stopOnEntry": false,
+            "initCommands": [],
+            "args": [],
+            "preLaunchTask": "Debug Compile",
+        },
+    ]
+}

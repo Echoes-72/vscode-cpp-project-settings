@@ -1,0 +1,48 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "Debug Compile",
+            "group": "build",
+            "detail": "Debug 编译",
+            "command": "xmake clean -a && xmake f -m debug && xmake build -j15 App",
+            "args": [],
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Release Compile",
+            "group": "build",
+            "detail": "Release 构建",
+            "command": "xmake clean -a && xmake f -m release && xmake build -j15 App",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "type": "shell",
+            "label": "Compile_Commands",
+            "group": "build",
+            "detail": "生成compile_commands.json",
+            "command": "xmake project -k compile_commands .vscode",
+            "icon": {
+                "color": "terminal.ansiGreen",
+                "id": "run"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        }
+    ]
+}
