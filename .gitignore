@@ -1,1 +1,6 @@
-bin
+.vscode/bin
+.vscode/.cache
+.vscode/build
+compile_commands.json
+.xmake
+.codex

@@ -1,13 +1,13 @@
 {
-  "CompileFlags": {
-    "Add": [
-      "-std=c++17",
-      "-Iinclude",
-      "-D_UNICODE",
-      "-DUNICODE"
-    ]
-  },
-  "Diagnostics": {
-    "Suppress":[]
-  }
+    "CompileFlags": {
+        "CompilationDatabase": ".vscode"
+    },
+    "Diagnostics": {
+        "Suppress": [],
+        "ClangTidy": {
+            "Add": [],
+            "Remove": [],
+            "FastCheckFilter": "Strict"
+        }
+    }
 }
