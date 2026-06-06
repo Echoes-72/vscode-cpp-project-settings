@@ -14,9 +14,6 @@ target("App")
     add_includedirs("include")
     add_files("main.cpp","src/*.cpp", {defines={"UNICODE","_UNICODE"}})
 
-    add_rules("Glsl")
-    add_files("res/shaders/*.frag","res/shaders/*.vert")
-
     if is_mode("debug") then --明确指定debug模式
         -- 添加DEBUG编译宏
         add_defines("DEBUG")
